@@ -608,7 +608,7 @@ public class ServerImpl implements InterfazDeServer {
         String sql = "SELECT * FROM usuarios WHERE nombre_usuario = ? AND contrasena = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, username);
-            ps.setString(2, password); // Comparar contraseña en texto plano
+            ps.setString(2, toMD5(password)); // Comparar contraseña con su hash MD5
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return new Usuario(
@@ -629,7 +629,7 @@ public class ServerImpl implements InterfazDeServer {
         String insertSql = "INSERT INTO usuarios (nombre_usuario, contrasena, correo, saldo_billetera) VALUES (?, ?, ?, 0.00)";
         try (PreparedStatement ps = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, username);
-            ps.setString(2, password); // Almacenar contraseña en texto plano
+            ps.setString(2, toMD5(password)); // Almacenar contraseña con su hash MD5
             ps.setString(3, email);
             int rows = ps.executeUpdate();
             if (rows > 0) {

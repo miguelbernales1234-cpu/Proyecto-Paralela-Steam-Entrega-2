@@ -100,12 +100,12 @@ CREATE TABLE `usuarios` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Usuarios de prueba con contraseñas en texto plano sin cifrar
+-- Usuarios de prueba con contraseñas cifradas en MD5 (ejemplo: '123456' -> 'e10adc3949ba59abbe56e057f20f883e')
 INSERT INTO `usuarios` (`id`, `nombre_usuario`, `contrasena`, `correo`, `saldo_billetera`) VALUES
-(1, 'gabeneuell', '123456', 'gabe@valvesoftware.com', 9999.99),
-(2, 'migue_gamer', '123456', 'migue@ejemplo.com', 50.00),
-(3, 'chilean_pro', '123456', 'chilean@ejemplo.com', 12.50),
-(4, 'rust_fanatic', '123456', 'rust@ejemplo.com', 0.00);
+(1, 'gabeneuell', 'e10adc3949ba59abbe56e057f20f883e', 'gabe@valvesoftware.com', 9999.99),
+(2, 'migue_gamer', 'e10adc3949ba59abbe56e057f20f883e', 'migue@ejemplo.com', 50.00),
+(3, 'chilean_pro', 'e10adc3949ba59abbe56e057f20f883e', 'chilean@ejemplo.com', 12.50),
+(4, 'rust_fanatic', 'e10adc3949ba59abbe56e057f20f883e', 'rust@ejemplo.com', 0.00);
 
 -- --------------------------------------------------------
 -- 5. TABLA: `bibliotecas`
