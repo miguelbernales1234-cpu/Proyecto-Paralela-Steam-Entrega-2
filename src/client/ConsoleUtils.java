@@ -48,7 +48,8 @@ public class ConsoleUtils {
         System.out.println("   _____| |  |   |  |   |___ |   _   || ||_|| |");
         System.out.println("  |_______|  |___|  |_______||__| |__||_|   |_|");
         System.out.println("                                               ");
-        System.out.println("            CLIENTE DISTRIBUIDO              ");
+        System.out.println("  STEAM — Plataforma de Juegos Distribuida     ");
+        System.out.println("  Catálogo · Precios Regionales · Bibliotecas  ");
         System.out.println(RESET);
     }
     

@@ -1,6 +1,6 @@
 # Proyecto Computación Paralela y Distribuida - Steam
 
-Este repositorio contiene todo el código fuente del proyecto, el cual es una aplicación distribuida en Java enfocada en funcionalidades estilo Steam (como comparación de precios regionales y Family Mode).
+Este repositorio contiene todo el código fuente del proyecto, el cual es una aplicación distribuida en Java que actúa como herramienta de análisis y comparación de precios de juegos usando la API oficial de Steam. Implementa funcionalidades como comparación de precios regionales y búsqueda de biblioteca compartida (Family Sharing).
 
 **Nota importante:** Todo el código del proyecto se encuentra alojado en este repositorio de GitHub, junto con una carpeta que contiene los archivos de la base de datos (`.sql`) necesarios para su funcionamiento.
 
@@ -25,12 +25,35 @@ Para integrar la base de datos adjunta en el repositorio a tu entorno local, sig
 1. Asegúrate de que los módulos de Apache y MySQL estén en ejecución (con fondo verde) en tu Panel de Control de XAMPP.
 2. Abre tu navegador web y dirígete a la siguiente dirección: [http://localhost/phpmyadmin/](http://localhost/phpmyadmin/).
 3. En el panel izquierdo de phpMyAdmin, haz clic en **"Nueva"** para crear una nueva base de datos.
-4. Ingresa el nombre de la base de datos "project_db". Luego haz clic en **"Crear"**.
+4. Ingresa el nombre de la base de datos "project_db_extended" (o cualquier nombre, ya que el script SQL la creará automáticamente). Luego haz clic en **"Crear"**.
 5. Selecciona la base de datos recién creada haciendo clic sobre ella en el panel izquierdo.
 6. En el menú superior de opciones, haz clic en la pestaña **"Importar"**.
 7. En la sección "Archivo a importar", haz clic en el botón **"Seleccionar archivo"** (o "Choose File").
 8. Navega hasta la carpeta del proyecto que clonaste de GitHub, busca la carpeta `BD`, correspondiente a la base de datos y selecciona el archivo `project_db.sql` que contiene la estructura y los datos.
 9. Desplázate hasta el final de la página y haz clic en el botón **"Importar"** (o "Go") para ejecutar el script. Si todo sale bien, verás un mensaje de éxito y las tablas aparecerán en tu base de datos.
+
+---
+
+### 3. Configurar la API Key de Steam
+
+El servidor necesita una Steam Web API Key para consultar las bibliotecas de los perfiles de usuarios (funcionalidad Family Sharing). Se recomienda configurarla como variable de entorno para no exponerla en el código fuente:
+
+**Windows (PowerShell — sesión actual):**
+```powershell
+$env:STEAM_API_KEY = "tu_api_key_aqui"
+```
+
+**Windows (permanente, para el usuario actual):**
+```powershell
+[System.Environment]::SetEnvironmentVariable("STEAM_API_KEY", "tu_api_key_aqui", "User")
+```
+
+**Linux / macOS:**
+```bash
+export STEAM_API_KEY="tu_api_key_aqui"
+```
+
+Puedes obtener tu propia API Key en: https://steamcommunity.com/dev/apikey
 
 ---
 
@@ -40,6 +63,7 @@ Para integrar la base de datos adjunta en el repositorio a tu entorno local, sig
    ```bash
    git clone https://github.com/WDBronce1/Proyecto-Paralela-Steam.git
    ```
-2. Abre el proyecto en tu IDE de Java preferido (por ejemplo, Eclipse, IntelliJ IDEA o VS Code).
-3. Ejecuta primero la clase del servidor (`RunServer.java`) para levantar el servicio RMI/Sockets.
-4. Finalmente, ejecuta las instancias del cliente (`RunClient.java`) para interactuar con la aplicación.
+2. Configura la variable de entorno `STEAM_API_KEY` (ver sección anterior).
+3. Abre el proyecto en tu IDE de Java preferido (por ejemplo, Eclipse, IntelliJ IDEA o VS Code).
+4. Ejecuta primero la clase del servidor (`RunServer.java`) para levantar el servicio Sockets.
+5. Finalmente, ejecuta las instancias del cliente (`RunClient.java`) para interactuar con la aplicación.

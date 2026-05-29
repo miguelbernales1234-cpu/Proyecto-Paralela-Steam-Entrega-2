@@ -10,8 +10,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 
 import common.Juego;
 import common.Moneda;
+import common.Pais;
+import common.PrecioRegional;
 import common.Request;
 import common.Response;
+import common.Usuario;
 
 public class ClientHandler implements Runnable {
 
@@ -76,15 +79,14 @@ public class ClientHandler implements Runnable {
         switch (request.getCommand()) {
 
             case CERRAR_CONEXION:
-                server.cerrarConexion();
+                // No se cierra la conexión de la BD aquí porque el servidor es compartido
+                // entre múltiples clientes. El cierre de la BD ocurre solo al detener el servidor.
                 return new Response(true, "Conexión cerrada.");
 
             case OBTENER_JUEGOS:
                 return new Response(true, server.obtenerJuegos());
 
-            case AGREGAR_JUEGO:
-                Juego juegoAgregado = server.agregarJuego((Juego) p[0]);
-                return new Response(true, juegoAgregado);
+
 
             case ELIMINAR_JUEGO:
                 boolean eliminado = server.eliminarJuego((String) p[0]);
@@ -102,14 +104,18 @@ public class ClientHandler implements Runnable {
                 Moneda moneda = server.buscarMoneda((String) p[0]);
                 return new Response(true, moneda);
 
-            case GET_GAME_FROM_API_STEAM:
-                Juego juegoApi = server.getGameFromApiSteam((Integer) p[0], (String) p[1], (String) p[2]);
-                return new Response(true, juegoApi);
+
 
             case GET_PRICES_FROM_MULTIPLE_COUNTRIES:
                 ArrayList<Double> precios = server.getPricesFromMultipleCountries(
                         (Integer) p[0], (ArrayList<String>) p[1]);
                 return new Response(true, precios);
+
+            case GET_PRECIOS_REGIONALES:
+                // Retorna precios con moneda local incluida, tal como los muestra Steam
+                ArrayList<PrecioRegional> preciosRegionales = server.getPreciosRegionales(
+                        (Integer) p[0], (ArrayList<Pais>) p[1]);
+                return new Response(true, preciosRegionales);
 
             case OBTENER_JUEGOS_EN_COMUN:
                 ArrayList<Juego> comunes = server.obtenerJuegosEnComun((ArrayList<String>) p[0]);
@@ -117,6 +123,40 @@ public class ClientHandler implements Runnable {
 
             case OBTENER_PAISES:
                 return new Response(true, server.obtenerPaises());
+
+            case INICIAR_SESION:
+                Usuario userLogin = server.iniciarSesion((String) p[0], (String) p[1]);
+                if (userLogin != null) {
+                    return new Response(true, userLogin);
+                } else {
+                    return new Response("Usuario o contraseña incorrectos.");
+                }
+
+            case REGISTRAR_USUARIO:
+                Usuario userReg = server.registrarUsuario((String) p[0], (String) p[1], (String) p[2]);
+                if (userReg != null) {
+                    return new Response(true, userReg);
+                } else {
+                    return new Response("Error al registrar usuario. El nombre de usuario o correo ya existen.");
+                }
+
+            case COMPRAR_JUEGO:
+                boolean compraOk = server.comprarJuego((Integer) p[0], (Integer) p[1], (Double) p[2]);
+                return new Response(true, compraOk);
+
+
+
+            case RECARGAR_SALDO:
+                double nuevoSaldo = server.recargarSaldo((Integer) p[0], (Double) p[1]);
+                return new Response(true, nuevoSaldo);
+
+            case OBTENER_JUEGOS_EN_COMUN_LOCAL:
+                ArrayList<Juego> comunesLocal = server.obtenerJuegosEnComunLocal((ArrayList<String>) p[0]);
+                return new Response(true, comunesLocal);
+
+            case OBTENER_BIBLIOTECA:
+                ArrayList<Juego> biblio = server.obtenerBiblioteca((Integer) p[0]);
+                return new Response(true, biblio);
 
             default:
                 return new Response("Comando desconocido: " + request.getCommand());

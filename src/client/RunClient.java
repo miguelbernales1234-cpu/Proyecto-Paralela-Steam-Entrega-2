@@ -4,22 +4,28 @@ import java.util.Scanner;
 
 public class RunClient {
     public static void main(String[] args) {
-        String host;
+        String[] hosts;
 
         if (args.length > 0) {
-            host = args[0];
+            hosts = args[0].split(",");
         } else {
             Scanner sc = new Scanner(System.in);
             System.out.println("╔══════════════════════════════════════════╗");
-            System.out.println("║        STEAM - Cliente Distribuido       ║");
+            System.out.println("║   Comparador de Precios Steam              ║");
+            System.out.println("║   Cliente Distribuido - Tolerancia a fallos║");
             System.out.println("╚══════════════════════════════════════════╝");
-            System.out.print(" Ingrese la IP del servidor (Enter = localhost): ");
+            System.out.println(" Puede ingresar varios servidores separados por coma.");
+            System.out.print(" Ingrese IPs/Puertos (Enter = localhost:1009,localhost:1010): ");
             String input = sc.nextLine().trim();
-            host = input.isEmpty() ? "localhost" : input;
+            if (input.isEmpty()) {
+                hosts = new String[]{"localhost:1009", "localhost:1010"};
+            } else {
+                hosts = input.split(",");
+            }
         }
 
-        System.out.println(" Conectando a: " + host + "...\n");
+        System.out.println(" Iniciando cliente con servidores de respaldo...");
         Client client = new Client();
-        client.startClient(host);
+        client.startClient(hosts);
     }
 }

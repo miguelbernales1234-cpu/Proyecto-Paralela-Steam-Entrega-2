@@ -5,15 +5,28 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class RunServer {
-    private static final int PORT = 1009;
-
     // Este metodo tiene como objetivo iniciar el servidor e instanciar un ClientHandler para cada conexion entrante
     public static void main(String[] args) {
+        int port = 1009; // Puerto por defecto
+        if (args.length > 0) {
+            try {
+                port = Integer.parseInt(args[0]);
+            } catch (NumberFormatException e) {
+                System.out.println("Puerto inválido, usando puerto por defecto 1009.");
+            }
+        }
+        
         ServerImpl server = new ServerImpl();
 
-        System.out.println("=== Servidor Steam iniciado en el puerto " + PORT + " ===");
+        // Registrar un shutdown hook para cerrar la BD correctamente al detener el servidor
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("\n[!] Cerrando servidor... guardando base de datos.");
+            server.cerrarConexion();
+        }));
 
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
+        System.out.println("=== Servidor Steam iniciado en el puerto " + port + " ===");
+
+        try (ServerSocket serverSocket = new ServerSocket(port)) {
             System.out.println("Esperando conexiones de clientes...");
 
             while (true) {

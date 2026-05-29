@@ -9,15 +9,20 @@ public class Request implements Serializable {
     public enum Command {
         CERRAR_CONEXION,
         OBTENER_JUEGOS,
-        AGREGAR_JUEGO,
         ELIMINAR_JUEGO,
         BUSCAR_JUEGO,
         CONVERTIR_PRECIO_A_USD,
         BUSCAR_MONEDA,
-        GET_GAME_FROM_API_STEAM,
         GET_PRICES_FROM_MULTIPLE_COUNTRIES,
+        GET_PRECIOS_REGIONALES,
         OBTENER_JUEGOS_EN_COMUN,
-        OBTENER_PAISES
+        OBTENER_PAISES,
+        INICIAR_SESION,
+        REGISTRAR_USUARIO,
+        COMPRAR_JUEGO,
+        RECARGAR_SALDO,
+        OBTENER_JUEGOS_EN_COMUN_LOCAL,
+        OBTENER_BIBLIOTECA
     }
 
     private Command command;
