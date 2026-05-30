@@ -193,15 +193,63 @@ public class Client {
             if (games.isEmpty()) {
                 System.out.println(ConsoleUtils.YELLOW + "No hay juegos registrados en el catálogo." + ConsoleUtils.RESET);
             } else {
-                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(73) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
-                System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.BOLD + " %-10s | %-45s | %-10s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET, "App ID", "Nombre", "Tipo");
-                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.HORIZONTAL.repeat(73) + ConsoleUtils.VERTICAL + ConsoleUtils.RESET);
-                for (Juego j : games) {
-                    String tipoColor = "game".equalsIgnoreCase(j.getTipo()) ? ConsoleUtils.GREEN : ConsoleUtils.YELLOW;
-                    System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.RESET + " %-10d | %-45s | " + tipoColor + "%-10s" + ConsoleUtils.RESET + " " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
-                            j.getId(), j.getNombre(), j.getTipo() != null ? j.getTipo() : "game");
+                // Determinar el país de destino para mostrar los precios (Opción B)
+                Pais targetPais = null;
+                if (loggedInUser == null) {
+                    targetPais = new Pais("Estados Unidos", "us");
+                } else {
+                    Response rPaises = sendRequest(new Request(Request.Command.OBTENER_PAISES));
+                    if (rPaises.isSuccess()) {
+                        @SuppressWarnings("unchecked")
+                        ArrayList<Pais> paisesBD = (ArrayList<Pais>) rPaises.getResult();
+                        for (Pais p : paisesBD) {
+                            if (p.getId().equalsIgnoreCase(loggedInUser.getCodigoPais())) {
+                                targetPais = p;
+                                break;
+                            }
+                        }
+                    }
+                    if (targetPais == null) {
+                        targetPais = new Pais("Estados Unidos", "us"); // Fallback
+                    }
                 }
-                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(73) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
+
+                // Consultar precios del catálogo para esa región en paralelo
+                Response rPrecios = sendRequest(new Request(Request.Command.GET_PRECIOS_CATALOGO, games, targetPais));
+                if (!rPrecios.isSuccess()) {
+                    System.out.println(ConsoleUtils.RED + "Error al obtener precios del catálogo: " + rPrecios.getErrorMessage() + ConsoleUtils.RESET);
+                    return;
+                }
+                @SuppressWarnings("unchecked")
+                ArrayList<PrecioRegional> precios = (ArrayList<PrecioRegional>) rPrecios.getResult();
+
+                if (loggedInUser == null) {
+                    // MODO INVITADO: Solo muestra Nombre y Precio
+                    System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(66) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
+                    System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.BOLD + " %-45s | %-16s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET, "Nombre", "Precio");
+                    System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.HORIZONTAL.repeat(66) + ConsoleUtils.VERTICAL + ConsoleUtils.RESET);
+                    for (int i = 0; i < games.size(); i++) {
+                        Juego j = games.get(i);
+                        PrecioRegional pr = precios.get(i);
+                        String precioStr = pr.getPrecioFormateado();
+                        System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.RESET + " %-45s | %-16s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
+                                j.getNombre(), precioStr);
+                    }
+                    System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(66) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
+                } else {
+                    // MODO USUARIO AUTENTICADO: Muestra App ID, Nombre y Precio
+                    System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(79) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
+                    System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.BOLD + " %-10s | %-45s | %-16s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET, "App ID", "Nombre", "Precio");
+                    System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.HORIZONTAL.repeat(79) + ConsoleUtils.VERTICAL + ConsoleUtils.RESET);
+                    for (int i = 0; i < games.size(); i++) {
+                        Juego j = games.get(i);
+                        PrecioRegional pr = precios.get(i);
+                        String precioStr = pr.getPrecioFormateado();
+                        System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.RESET + " %-10d | %-45s | %-16s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
+                                j.getId(), j.getNombre(), precioStr);
+                    }
+                    System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(79) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
+                }
             }
         } catch (Exception e) {
             System.out.println(ConsoleUtils.RED + "Error al obtener catálogo de juegos: " + e.getMessage() + ConsoleUtils.RESET);

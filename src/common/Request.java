@@ -23,7 +23,8 @@ public class Request implements Serializable {
         COMPRAR_JUEGO,
         RECARGAR_SALDO,
         OBTENER_JUEGOS_EN_COMUN_LOCAL,
-        OBTENER_BIBLIOTECA
+        OBTENER_BIBLIOTECA,
+        GET_PRECIOS_CATALOGO
     }
 
     private Command command;

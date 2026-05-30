@@ -183,6 +183,9 @@ public class ServerImpl implements InterfazDeServer {
                     String formateado = priceNode.has("final_formatted")
                             ? priceNode.get("final_formatted").asText()
                             : String.format("%.2f %s", precioLocal, moneda);
+                    if ("USD".equalsIgnoreCase(moneda) && precioLocal > 0) {
+                        formateado = String.format("USD $%,.2f", precioLocal);
+                    }
                     double precioUSD = convertirPrecioAUSD(precioLocal, moneda);
                     return new PrecioRegional(pais.getNombre(), moneda, precioLocal, formateado, precioUSD);
                 } else {
@@ -219,6 +222,25 @@ public class ServerImpl implements InterfazDeServer {
             List<CompletableFuture<PrecioRegional>> futures = paises.stream()
                     .map(pais -> CompletableFuture.supplyAsync(
                             () -> getPrecioRegionalDeApiSteam(id_juego, pais), executor))
+                    .collect(Collectors.toList());
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
+            return futures.stream()
+                    .map(CompletableFuture::join)
+                    .collect(Collectors.toCollection(ArrayList::new));
+        } finally {
+            executor.shutdown();
+        }
+    }
+
+    @Override
+    // Este metodo tiene como objetivo obtener los precios de todos los juegos del catalogo en un pais de manera concurrente
+    public ArrayList<PrecioRegional> getPreciosCatalogo(ArrayList<Juego> juegos, Pais pais) {
+        int numThreads = Math.min(juegos.size(), 20);
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        try {
+            List<CompletableFuture<PrecioRegional>> futures = juegos.stream()
+                    .map(juego -> CompletableFuture.supplyAsync(
+                            () -> getPrecioRegionalDeApiSteam(juego.getId(), pais), executor))
                     .collect(Collectors.toList());
             CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
             return futures.stream()
@@ -882,7 +904,7 @@ public class ServerImpl implements InterfazDeServer {
             case "CLP": return String.format("CLP$ %,.0f", price).replace(',', '.');
             case "INR": return String.format("₹ %,.0f", price);
             case "EUR": return String.format("%,.2f€", price);
-            case "USD": return String.format("$%,.2f", price);
+            case "USD": return String.format("USD $%,.2f", price);
             case "CAD": return String.format("CDN$ %,.2f", price);
             case "AUD": return String.format("A$ %,.2f", price);
             case "BRL": return String.format("R$ %,.2f", price).replace('.', ',');

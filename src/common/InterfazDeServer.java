@@ -36,4 +36,6 @@ public interface InterfazDeServer {
     public double recargarSaldo(int userId, double montoUSD) throws Exception;
     public ArrayList<Juego> obtenerJuegosEnComunLocal(ArrayList<String> usernames);
     public ArrayList<Juego> obtenerBiblioteca(int userId) throws Exception;
+    public ArrayList<PrecioRegional> getPreciosCatalogo(ArrayList<Juego> juegos, Pais pais);
 }
+
