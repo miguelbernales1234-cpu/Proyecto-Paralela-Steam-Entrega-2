@@ -107,7 +107,8 @@ INSERT INTO `usuarios` (`id`, `nombre_usuario`, `contrasena`, `correo`, `saldo_b
 (1, 'gabeneuell', 'e10adc3949ba59abbe56e057f20f883e', 'gabe@valvesoftware.com', 9999.99, 'us'),
 (2, 'migue_gamer', 'e10adc3949ba59abbe56e057f20f883e', 'migue@ejemplo.com', 50.00, 'cl'),
 (3, 'chilean_pro', 'e10adc3949ba59abbe56e057f20f883e', 'chilean@ejemplo.com', 12.50, 'cl'),
-(4, 'rust_fanatic', 'e10adc3949ba59abbe56e057f20f883e', 'rust@ejemplo.com', 0.00, 'cl');
+(4, 'rust_fanatic', 'e10adc3949ba59abbe56e057f20f883e', 'rust@ejemplo.com', 0.00, 'cl'),
+(5, 'dazinha', '29490ae75ef24d863c7ad5b2df736804', 'albo@gmail.com', 2500.00, 'cl');
 
 -- --------------------------------------------------------
 -- 5. TABLA: `bibliotecas`
