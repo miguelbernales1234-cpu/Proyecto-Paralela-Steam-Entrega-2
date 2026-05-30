@@ -2,6 +2,8 @@ module Tarea_1_Computacion {
 	exports common;
 	exports client;
 	exports server;
+	exports node;
+	exports load;
 
 	requires java.sql;
 	requires java.base;

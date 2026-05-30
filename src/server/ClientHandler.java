@@ -15,16 +15,27 @@ import common.PrecioRegional;
 import common.Request;
 import common.Response;
 import common.Usuario;
+import node.RelojLamport;
+import node.RicartAgrawala;
 
 public class ClientHandler implements Runnable {
 
     private final Socket clientSocket;
     private final ServerImpl server;
+    private final RicartAgrawala ra;   // Null si se usa sin modo distribuido
+    private final RelojLamport clock;  // Null si se usa sin modo distribuido
 
-    // Este metodo tiene como objetivo inicializar el manejador para un cliente especifico con su socket y referencia al servidor
-    public ClientHandler(Socket clientSocket, ServerImpl server) {
+    // Este metodo tiene como objetivo inicializar el manejador en modo distribuido (con RA y reloj de Lamport)
+    public ClientHandler(Socket clientSocket, ServerImpl server, RicartAgrawala ra, RelojLamport clock) {
         this.clientSocket = clientSocket;
-        this.server = server;
+        this.server       = server;
+        this.ra           = ra;
+        this.clock        = clock;
+    }
+
+    // Este metodo tiene como objetivo inicializar el manejador en modo simple (sin coordinacion distribuida)
+    public ClientHandler(Socket clientSocket, ServerImpl server) {
+        this(clientSocket, server, null, null);
     }
 
     @Override
@@ -45,11 +56,21 @@ public class ClientHandler implements Runnable {
                     break;
                 }
 
+                // Actualizar reloj de Lamport al recibir la peticion del cliente
+                if (clock != null) {
+                    clock.update(request.getLamportTime());
+                }
+
                 Response response;
                 try {
                     response = dispatch(request);
                 } catch (Exception e) {
                     response = new Response("Error interno del servidor: " + e.getMessage());
+                }
+
+                // Marcar la respuesta con el tiempo de Lamport actual antes de enviar
+                if (clock != null) {
+                    response.setLamportTime(clock.tick());
                 }
 
                 out.writeObject(response);
@@ -79,14 +100,12 @@ public class ClientHandler implements Runnable {
         switch (request.getCommand()) {
 
             case CERRAR_CONEXION:
-                // No se cierra la conexión de la BD aquí porque el servidor es compartido
-                // entre múltiples clientes. El cierre de la BD ocurre solo al detener el servidor.
-                return new Response(true, "Conexión cerrada.");
+                // No se cierra la conexion de la BD aqui porque el servidor es compartido
+                // entre multiples clientes. El cierre de la BD ocurre solo al detener el servidor.
+                return new Response(true, "Conexion cerrada.");
 
             case OBTENER_JUEGOS:
                 return new Response(true, server.obtenerJuegos());
-
-
 
             case ELIMINAR_JUEGO:
                 boolean eliminado = server.eliminarJuego((String) p[0]);
@@ -103,8 +122,6 @@ public class ClientHandler implements Runnable {
             case BUSCAR_MONEDA:
                 Moneda moneda = server.buscarMoneda((String) p[0]);
                 return new Response(true, moneda);
-
-
 
             case GET_PRICES_FROM_MULTIPLE_COUNTRIES:
                 ArrayList<Double> precios = server.getPricesFromMultipleCountries(
@@ -129,7 +146,7 @@ public class ClientHandler implements Runnable {
                 if (userLogin != null) {
                     return new Response(true, userLogin);
                 } else {
-                    return new Response("Usuario o contraseña incorrectos.");
+                    return new Response("Usuario o contrasena incorrectos.");
                 }
 
             case REGISTRAR_USUARIO:
@@ -141,14 +158,34 @@ public class ClientHandler implements Runnable {
                 }
 
             case COMPRAR_JUEGO:
-                boolean compraOk = server.comprarJuego((Integer) p[0], (Integer) p[1], (Double) p[2]);
-                return new Response(true, compraOk);
-
-
+                // RECURSO CRITICO: usar exclusion mutua Ricart-Agrawala en modo distribuido
+                if (ra != null) {
+                    ra.requestAccess();
+                    try {
+                        boolean compraOk = server.comprarJuego((Integer) p[0], (Integer) p[1], (Double) p[2]);
+                        return new Response(true, compraOk);
+                    } finally {
+                        ra.releaseAccess();
+                    }
+                } else {
+                    boolean compraOk = server.comprarJuego((Integer) p[0], (Integer) p[1], (Double) p[2]);
+                    return new Response(true, compraOk);
+                }
 
             case RECARGAR_SALDO:
-                double nuevoSaldo = server.recargarSaldo((Integer) p[0], (Double) p[1]);
-                return new Response(true, nuevoSaldo);
+                // RECURSO CRITICO: usar exclusion mutua Ricart-Agrawala en modo distribuido
+                if (ra != null) {
+                    ra.requestAccess();
+                    try {
+                        double nuevoSaldo = server.recargarSaldo((Integer) p[0], (Double) p[1]);
+                        return new Response(true, nuevoSaldo);
+                    } finally {
+                        ra.releaseAccess();
+                    }
+                } else {
+                    double nuevoSaldo = server.recargarSaldo((Integer) p[0], (Double) p[1]);
+                    return new Response(true, nuevoSaldo);
+                }
 
             case OBTENER_JUEGOS_EN_COMUN_LOCAL:
                 ArrayList<Juego> comunesLocal = server.obtenerJuegosEnComunLocal((ArrayList<String>) p[0]);

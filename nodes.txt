@@ -1,0 +1,8 @@
+# Configuracion del cluster de nodos Steam Distribuido
+# Formato: nodeId,host,clientPort,peerPort
+# clientPort: donde atiende a clientes externos (Client.java)
+# peerPort:   donde atiende mensajes P2P (heartbeats, Bully, Ricart-Agrawala)
+
+1,localhost,5000,6000
+2,localhost,5001,6001
+3,localhost,5002,6002
