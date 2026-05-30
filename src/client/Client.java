@@ -87,12 +87,11 @@ public class Client {
                 if (loggedInUser == null) {
                     // MENÚ DE INVITADO (SIN SESIÓN)
                     System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(48) + ConsoleUtils.TOP_RIGHT);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[1]" + ConsoleUtils.RESET + " Iniciar Sesión                              " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[2]" + ConsoleUtils.RESET + " Registrar Cuenta Nueva                      " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[3]" + ConsoleUtils.RESET + " Ver catálogo de juegos                      " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[4]" + ConsoleUtils.RESET + " Buscar juego por nombre                     " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[5]" + ConsoleUtils.RESET + " Comparar precio por región (Steam API)      " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[0]" + ConsoleUtils.RESET + " Salir                                       " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[1]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Iniciar Sesión");
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[2]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Registrar Cuenta Nueva");
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[3]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Ver catálogo de juegos");
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[4]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Buscar juego por nombre");
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[0]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Salir");
                     System.out.println(" " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(48) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
 
                     System.out.print("\n" + ConsoleUtils.BOLD + " Ingrese una opción: " + ConsoleUtils.RESET);
@@ -114,7 +113,6 @@ public class Client {
                         case 2: registrarUsuario(sc);           break;
                         case 3: listarJuegos();                 break;
                         case 4: buscarJuego(sc);                break;
-                        case 5: compararPrecioEnRegiones(sc);   break;
                         case 0:
                             System.out.println(ConsoleUtils.GREEN + "Cerrando cliente. ¡Hasta luego!" + ConsoleUtils.RESET);
                             break;
@@ -125,13 +123,13 @@ public class Client {
                     // MENÚ DE USUARIO AUTENTICADO
                     System.out.println(ConsoleUtils.GREEN + ConsoleUtils.BOLD + "   Sesión activa: " + loggedInUser.getUsername() + " | Billetera: $" + String.format("%.2f", loggedInUser.getWalletBalance()) + " USD" + ConsoleUtils.RESET);
                     System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(48) + ConsoleUtils.TOP_RIGHT);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[1]" + ConsoleUtils.RESET + " Ver mi Perfil y Billetera                   " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[2]" + ConsoleUtils.RESET + " Ver mi Biblioteca de Juegos                " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[3]" + ConsoleUtils.RESET + " Comprar un Juego                            " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[4]" + ConsoleUtils.RESET + " Juegos en Común con Amigos (BD Local)       " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[5]" + ConsoleUtils.RESET + " Recargar Saldo                              " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[6]" + ConsoleUtils.RESET + " Cerrar Sesión                               " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
-                    System.out.println(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[0]" + ConsoleUtils.RESET + " Salir                                       " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL);
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[1]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Ver mi Perfil y Billetera");
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[2]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Ver mi Biblioteca de Juegos");
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[3]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Comprar un Juego");
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[4]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Juegos en Común con Amigos (BD Local)");
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[5]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Recargar Saldo");
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[6]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Cerrar Sesión");
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[0]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Salir");
                     System.out.println(" " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(48) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
 
                     System.out.print("\n" + ConsoleUtils.BOLD + " Ingrese una opción: " + ConsoleUtils.RESET);
@@ -195,15 +193,15 @@ public class Client {
             if (games.isEmpty()) {
                 System.out.println(ConsoleUtils.YELLOW + "No hay juegos registrados en el catálogo." + ConsoleUtils.RESET);
             } else {
-                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(72) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(73) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
                 System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.BOLD + " %-10s | %-45s | %-10s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET, "App ID", "Nombre", "Tipo");
-                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.HORIZONTAL.repeat(72) + ConsoleUtils.VERTICAL + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.HORIZONTAL.repeat(73) + ConsoleUtils.VERTICAL + ConsoleUtils.RESET);
                 for (Juego j : games) {
                     String tipoColor = "game".equalsIgnoreCase(j.getTipo()) ? ConsoleUtils.GREEN : ConsoleUtils.YELLOW;
                     System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.RESET + " %-10d | %-45s | " + tipoColor + "%-10s" + ConsoleUtils.RESET + " " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
                             j.getId(), j.getNombre(), j.getTipo() != null ? j.getTipo() : "game");
                 }
-                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(72) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(73) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
             }
         } catch (Exception e) {
             System.out.println(ConsoleUtils.RED + "Error al obtener catálogo de juegos: " + e.getMessage() + ConsoleUtils.RESET);
@@ -343,10 +341,10 @@ public class Client {
             System.out.println("\n " + ConsoleUtils.BOLD + "Precios de: " + ConsoleUtils.YELLOW + juego.getNombre() + ConsoleUtils.RESET);
 
             // Encabezado de la tabla
-            System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(58) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
-            System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.BOLD + " %-18s | %-20s | %-14s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
-                    "País", "Precio Local", "Equiv. USD");
-            System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.HORIZONTAL.repeat(58) + ConsoleUtils.VERTICAL + ConsoleUtils.RESET);
+            System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(37) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
+            System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.BOLD + " %-18s | %-14s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
+                    "País", "Equiv. USD");
+            System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.HORIZONTAL.repeat(37) + ConsoleUtils.VERTICAL + ConsoleUtils.RESET);
 
             // Encontrar precio minimo en USD para resaltarlo
             double minUSD = Double.MAX_VALUE;
@@ -371,10 +369,10 @@ public class Client {
                     usdStr = String.format("$%.2f USD", p.getPrecioUSD());
                 }
                 String marker = (i == minIndex) ? " ◄ MÁS BARATO" : "";
-                System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + color + " %-18s | %-20s | %-14s" + ConsoleUtils.RESET + "%s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
-                        p.getPaisNombre(), p.getPrecioFormateado(), usdStr, marker);
+                System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + color + " %-18s | %-14s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + color + "%s\n" + ConsoleUtils.RESET,
+                        p.getPaisNombre(), usdStr, marker);
             }
-            System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(58) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
+            System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(37) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
             System.out.println(ConsoleUtils.GRAY + " Tiempo de consulta: " + (endTime - startTime) + "ms (consultas paralelas a la API de Steam)" + ConsoleUtils.RESET);
 
         } catch (Exception e) {
@@ -419,7 +417,41 @@ public class Client {
             System.out.print(ConsoleUtils.BOLD + " Ingrese su correo electrónico: " + ConsoleUtils.RESET);
             String email = sc.nextLine().trim();
 
-            Response rReg = sendRequest(new Request(Request.Command.REGISTRAR_USUARIO, username, password, email));
+            // Obtener países disponibles para selección
+            Response rPaises = sendRequest(new Request(Request.Command.OBTENER_PAISES));
+            @SuppressWarnings("unchecked")
+            ArrayList<Pais> paisesBD = (ArrayList<Pais>) rPaises.getResult();
+
+            String codigoPais = "";
+            while (true) {
+                System.out.println("\n " + ConsoleUtils.BOLD + "Países disponibles:" + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(31) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
+                System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.BOLD + " %-20s | %-6s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET, "País", "ID");
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.HORIZONTAL.repeat(31) + ConsoleUtils.VERTICAL + ConsoleUtils.RESET);
+                for (Pais p : paisesBD) {
+                    System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.RESET + " %-20s | %-6s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
+                            p.getNombre(), p.getId());
+                }
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(31) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
+
+                System.out.print("\n" + ConsoleUtils.BOLD + " Ingrese el ID de su país: " + ConsoleUtils.RESET);
+                codigoPais = sc.nextLine().trim().toLowerCase();
+                
+                boolean finalValid = false;
+                for (Pais p : paisesBD) {
+                    if (p.getId().equalsIgnoreCase(codigoPais)) {
+                        finalValid = true;
+                        codigoPais = p.getId(); // mantener el formato de la base de datos
+                        break;
+                    }
+                }
+                if (finalValid) {
+                    break;
+                }
+                System.out.println(ConsoleUtils.RED + " ID de país no válido. Intente nuevamente." + ConsoleUtils.RESET);
+            }
+
+            Response rReg = sendRequest(new Request(Request.Command.REGISTRAR_USUARIO, username, password, email, codigoPais));
             if (rReg.isSuccess()) {
                 loggedInUser = (Usuario) rReg.getResult();
                 System.out.println(ConsoleUtils.GREEN + "\n [✔] ¡Registro exitoso! Se ha iniciado sesión automáticamente." + ConsoleUtils.RESET);
@@ -453,12 +485,12 @@ public class Client {
             if (biblioteca.isEmpty()) {
                 System.out.println(ConsoleUtils.YELLOW + " No posees juegos en tu biblioteca. ¡Ve a la tienda a comprar algunos!" + ConsoleUtils.RESET);
             } else {
-                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(55) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(63) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
                 for (int i = 0; i < biblioteca.size(); i++) {
                     System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.RESET + "  %-3d.- %-35s (App ID: %-8d) " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
                             (i + 1), biblioteca.get(i).getNombre(), biblioteca.get(i).getId());
                 }
-                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(55) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(63) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
             }
         } catch (Exception e) {
             System.out.println(ConsoleUtils.RED + " Error al obtener biblioteca: " + e.getMessage() + ConsoleUtils.RESET);
@@ -482,7 +514,7 @@ public class Client {
                 return;
             }
 
-            // Consultar precios regionales para saber cuánto cuesta y ofrecer la opción al usuario
+            // Consultar países de la base de datos
             Response rPaises = sendRequest(new Request(Request.Command.OBTENER_PAISES));
             @SuppressWarnings("unchecked")
             ArrayList<Pais> paisesBD = (ArrayList<Pais>) rPaises.getResult();
@@ -491,39 +523,36 @@ public class Client {
                 return;
             }
 
-            System.out.println(ConsoleUtils.BLUE + " Consultando precios regionales en tiempo real..." + ConsoleUtils.RESET);
-            Response rPrecios = sendRequest(new Request(Request.Command.GET_PRECIOS_REGIONALES, gameId, paisesBD));
-            @SuppressWarnings("unchecked")
-            ArrayList<PrecioRegional> precios = (ArrayList<PrecioRegional>) rPrecios.getResult();
-
-            System.out.println("\n " + ConsoleUtils.BOLD + "Precios regionales disponibles:" + ConsoleUtils.RESET);
-            System.out.println(ConsoleUtils.CYAN + " ┌" + ConsoleUtils.HORIZONTAL.repeat(50) + "┐");
-            for (PrecioRegional p : precios) {
-                if (p.getPrecioUSD() >= 0) {
-                    System.out.printf(" " + ConsoleUtils.VERTICAL + " %-15s | %-15s | %-12s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
-                            p.getPaisNombre(), p.getPrecioFormateado(), String.format("$%.2f USD", p.getPrecioUSD()));
-                }
-            }
-            System.out.println(ConsoleUtils.CYAN + " └" + ConsoleUtils.HORIZONTAL.repeat(50) + "┘" + ConsoleUtils.RESET);
-
-            System.out.print(ConsoleUtils.BOLD + " Ingrese el nombre del país para simular su región de compra (ej. 'Chile', 'Estados Unidos'): " + ConsoleUtils.RESET);
-            String regionStr = sc.nextLine().trim();
-
-            PrecioRegional seleccionado = null;
-            for (PrecioRegional p : precios) {
-                if (p.getPaisNombre().equalsIgnoreCase(regionStr)) {
-                    seleccionado = p;
+            // Buscar el país del usuario logueado en la base de datos
+            Pais paisUsuario = null;
+            for (Pais p : paisesBD) {
+                if (p.getId().equalsIgnoreCase(loggedInUser.getCodigoPais())) {
+                    paisUsuario = p;
                     break;
                 }
             }
 
-            if (seleccionado == null || seleccionado.getPrecioUSD() < 0) {
-                System.out.println(ConsoleUtils.RED + " [x] Región no válida o juego no disponible en esa región." + ConsoleUtils.RESET);
+            if (paisUsuario == null) {
+                System.out.println(ConsoleUtils.RED + " [x] Tu cuenta está asociada a un país no válido: " + loggedInUser.getCodigoPais() + ConsoleUtils.RESET);
                 return;
             }
 
+            // Consultar precio únicamente para la región del usuario logueado
+            System.out.println(ConsoleUtils.BLUE + " Consultando precio regional para tu región (" + paisUsuario.getNombre() + ")..." + ConsoleUtils.RESET);
+            ArrayList<Pais> paisesConsulta = new ArrayList<>();
+            paisesConsulta.add(paisUsuario);
+            Response rPrecios = sendRequest(new Request(Request.Command.GET_PRECIOS_REGIONALES, gameId, paisesConsulta));
+            @SuppressWarnings("unchecked")
+            ArrayList<PrecioRegional> precios = (ArrayList<PrecioRegional>) rPrecios.getResult();
+
+            if (precios.isEmpty() || precios.get(0).getPrecioUSD() < 0) {
+                System.out.println(ConsoleUtils.RED + " [x] El juego no está disponible en tu región (" + paisUsuario.getNombre() + ")." + ConsoleUtils.RESET);
+                return;
+            }
+
+            PrecioRegional seleccionado = precios.get(0);
             double precioUSD = seleccionado.getPrecioUSD();
-            System.out.printf(ConsoleUtils.GREEN + " Precio regional seleccionado: %s (%s) -> Equivalente a $%.2f USD\n" + ConsoleUtils.RESET,
+            System.out.printf(ConsoleUtils.GREEN + " Precio para tu región (%s): %s -> Equivalente a $%.2f USD\n" + ConsoleUtils.RESET,
                     seleccionado.getPaisNombre(), seleccionado.getPrecioFormateado(), precioUSD);
 
             System.out.print(ConsoleUtils.BOLD + " ¿Confirmar compra de \"" + juego.getNombre() + "\"? (S/N): " + ConsoleUtils.RESET);

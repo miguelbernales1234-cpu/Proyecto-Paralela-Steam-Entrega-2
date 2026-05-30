@@ -30,7 +30,7 @@ public interface InterfazDeServer {
     
     // Métodos para réplica autónoma de Steam:
     public Usuario iniciarSesion(String username, String password) throws Exception;
-    public Usuario registrarUsuario(String username, String password, String email) throws Exception;
+    public Usuario registrarUsuario(String username, String password, String email, String codigoPais) throws Exception;
     public boolean comprarJuego(int userId, int gameId, double precioUSD) throws Exception;
 
     public double recargarSaldo(int userId, double montoUSD) throws Exception;

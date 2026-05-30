@@ -83,16 +83,23 @@ public class ServerImpl implements InterfazDeServer {
             JsonNode jsonNode = objectMapper.readTree(output);
             String appIdStr = String.valueOf(id_juego);
             JsonNode appData = jsonNode.get(appIdStr);
-            if (appData != null) {
+            if (appData != null && appData.has("data")) {
                 JsonNode dataNode = appData.get("data");
-                String currency = dataNode.get("price_overview").get("currency").asText();
-                double precioLocal = dataNode.get("price_overview").get("final").asDouble() / 100.0;
-
-                double precioEnUSD = convertirPrecioAUSD(precioLocal, currency);
-
-                return precioEnUSD;
+                if (dataNode.has("price_overview")) {
+                    String currency = dataNode.get("price_overview").get("currency").asText();
+                    double precioLocal = dataNode.get("price_overview").get("final").asDouble() / 100.0;
+                    double precioEnUSD = convertirPrecioAUSD(precioLocal, currency);
+                    return precioEnUSD;
+                } else {
+                    boolean isFree = dataNode.has("is_free") && dataNode.get("is_free").asBoolean();
+                    if (isFree) {
+                        return 0.0;
+                    } else {
+                        return 29.99; // Fallback para comerciales sin precio directo (como GTA V)
+                    }
+                }
             } else {
-                System.out.println("appData es null.");
+                System.out.println("appData es null o no tiene data.");
             }
         } catch (JsonMappingException e) {
             e.printStackTrace();
@@ -102,8 +109,6 @@ public class ServerImpl implements InterfazDeServer {
 
         return 0;
     }
-
-
 
     @Override
     // Este metodo tiene como objetivo obtener los precios en USD de un juego para
@@ -135,13 +140,16 @@ public class ServerImpl implements InterfazDeServer {
         }
     }
 
-    // Este metodo tiene como objetivo obtener el precio de un juego en una region especifica,
-    // retornando tanto el precio en moneda local (como lo muestra Steam) como su equivalente en USD
+    // Este metodo tiene como objetivo obtener el precio de un juego en una region
+    // especifica,
+    // retornando tanto el precio en moneda local (como lo muestra Steam) como su
+    // equivalente en USD
     private PrecioRegional getPrecioRegionalDeApiSteam(int id_juego, Pais pais) {
         String output = null;
         try {
             URL apiUrl = new URL(
-                    "https://store.steampowered.com/api/appdetails?appids=" + id_juego + "&cc=" + pais.getId() + "&l=es");
+                    "https://store.steampowered.com/api/appdetails?appids=" + id_juego + "&cc=" + pais.getId()
+                            + "&l=es");
             HttpURLConnection conn = (HttpURLConnection) apiUrl.openConnection();
             conn.setRequestMethod("GET");
             int responseCode = conn.getResponseCode();
@@ -149,7 +157,8 @@ public class ServerImpl implements InterfazDeServer {
                 BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder sb = new StringBuilder();
                 String line;
-                while ((line = br.readLine()) != null) sb.append(line);
+                while ((line = br.readLine()) != null)
+                    sb.append(line);
                 br.close();
                 output = sb.toString();
             } else {
@@ -168,17 +177,28 @@ public class ServerImpl implements InterfazDeServer {
                 JsonNode dataNode = appData.get("data");
                 if (dataNode.has("price_overview")) {
                     JsonNode priceNode = dataNode.get("price_overview");
-                    String moneda       = priceNode.get("currency").asText();
-                    double precioLocal  = priceNode.get("final").asDouble() / 100.0;
+                    String moneda = priceNode.get("currency").asText();
+                    double precioLocal = priceNode.get("final").asDouble() / 100.0;
                     // Steam retorna el precio ya formateado en la moneda local del pais
-                    String formateado   = priceNode.has("final_formatted")
+                    String formateado = priceNode.has("final_formatted")
                             ? priceNode.get("final_formatted").asText()
                             : String.format("%.2f %s", precioLocal, moneda);
-                    double precioUSD    = convertirPrecioAUSD(precioLocal, moneda);
+                    double precioUSD = convertirPrecioAUSD(precioLocal, moneda);
                     return new PrecioRegional(pais.getNombre(), moneda, precioLocal, formateado, precioUSD);
                 } else {
-                    // El juego es gratuito (free-to-play) en esta region
-                    return new PrecioRegional(pais.getNombre(), "N/A", 0.0, "Gratis", 0.0);
+                    boolean isFree = dataNode.has("is_free") && dataNode.get("is_free").asBoolean();
+                    if (isFree) {
+                        return new PrecioRegional(pais.getNombre(), "N/A", 0.0, "Gratis", 0.0);
+                    } else {
+                        // Fallback de precio para juegos comerciales sin precio en la API (como GTA V)
+                        String moneda = getCurrencyForCountry(pais.getId());
+                        Moneda mon = buscarMoneda(moneda);
+                        double ratio = (mon != null) ? mon.getUSDRatio() : 1.0;
+                        double precioUSD = 29.99; // precio base coherente
+                        double precioLocal = Math.round((precioUSD / ratio) * 100.0) / 100.0;
+                        String formateado = formatLocalPrice(precioLocal, moneda);
+                        return new PrecioRegional(pais.getNombre(), moneda, precioLocal, formateado, precioUSD);
+                    }
                 }
             }
         } catch (Exception e) {
@@ -189,7 +209,8 @@ public class ServerImpl implements InterfazDeServer {
     }
 
     @Override
-    // Este metodo tiene como objetivo obtener los precios de un juego en multiples paises de manera
+    // Este metodo tiene como objetivo obtener los precios de un juego en multiples
+    // paises de manera
     // concurrente, incluyendo el precio en moneda local tal como lo muestra Steam
     public ArrayList<PrecioRegional> getPreciosRegionales(int id_juego, ArrayList<Pais> paises) {
         int numThreads = Math.min(paises.size(), 20);
@@ -308,7 +329,7 @@ public class ServerImpl implements InterfazDeServer {
         ArrayList<Juego> juegos = new ArrayList<>();
         String sql = "SELECT * FROM juegos";
         try (Statement query = connection.createStatement();
-             ResultSet resultados = query.executeQuery(sql)) {
+                ResultSet resultados = query.executeQuery(sql)) {
             while (resultados.next()) {
                 int id = resultados.getInt("id");
                 String nombre = resultados.getString("nombre");
@@ -328,7 +349,7 @@ public class ServerImpl implements InterfazDeServer {
         ArrayList<Pais> paises = new ArrayList<>();
         String sql = "SELECT * FROM paises";
         try (Statement query = connection.createStatement();
-             ResultSet resultados = query.executeQuery(sql)) {
+                ResultSet resultados = query.executeQuery(sql)) {
             while (resultados.next()) {
                 String id = resultados.getString("codigo_pais");
                 String nombre = resultados.getString("nombre_pais");
@@ -404,7 +425,7 @@ public class ServerImpl implements InterfazDeServer {
         ArrayList<Moneda> monedas = new ArrayList<>();
         String sql = "SELECT * FROM monedas";
         try (Statement query = connection.createStatement();
-             ResultSet resultados = query.executeQuery(sql)) {
+                ResultSet resultados = query.executeQuery(sql)) {
             while (resultados.next()) {
                 String id = resultados.getString("codigo_moneda");
                 double USDRatio = resultados.getDouble("tasa_conversion_a_usd");
@@ -424,7 +445,8 @@ public class ServerImpl implements InterfazDeServer {
     }
 
     @Override
-    // Este metodo tiene como objetivo buscar y eliminar un juego directamente de la BD
+    // Este metodo tiene como objetivo buscar y eliminar un juego directamente de la
+    // BD
     // y de la memoria por nombre parcial
     public synchronized boolean eliminarJuego(String fragmentoNombre) {
         Juego juego = buscarJuego(fragmentoNombre);
@@ -580,7 +602,8 @@ public class ServerImpl implements InterfazDeServer {
         }
     }
 
-    // --- MÉTODOS PARA RÉPLICA AUTÓNOMA DE STEAM (LÓGICA CONCURRENTE Y DISTRIBUIDA) ---
+    // --- MÉTODOS PARA RÉPLICA AUTÓNOMA DE STEAM (LÓGICA CONCURRENTE Y DISTRIBUIDA)
+    // ---
 
     // Este método tiene como objetivo cifrar contraseñas usando hash MD5
     private String toMD5(String input) {
@@ -597,13 +620,15 @@ public class ServerImpl implements InterfazDeServer {
         }
     }
 
-    // Este método tiene como objetivo abrir una conexión independiente para evitar conflictos de hilos
+    // Este método tiene como objetivo abrir una conexión independiente para evitar
+    // conflictos de hilos
     private Connection createThreadConnection() throws SQLException {
         return DriverManager.getConnection("jdbc:mysql://localhost:3306/project_db_extended", "root", "");
     }
 
     @Override
-    // Este método tiene como objetivo validar las credenciales de inicio de sesión de un usuario local
+    // Este método tiene como objetivo validar las credenciales de inicio de sesión
+    // de un usuario local
     public Usuario iniciarSesion(String username, String password) throws Exception {
         String sql = "SELECT * FROM usuarios WHERE nombre_usuario = ? AND contrasena = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
@@ -612,11 +637,11 @@ public class ServerImpl implements InterfazDeServer {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     return new Usuario(
-                        rs.getInt("id"),
-                        rs.getString("nombre_usuario"),
-                        rs.getString("correo"),
-                        rs.getDouble("saldo_billetera")
-                    );
+                            rs.getInt("id"),
+                            rs.getString("nombre_usuario"),
+                            rs.getString("correo"),
+                            rs.getDouble("saldo_billetera"),
+                            rs.getString("codigo_pais"));
                 }
             }
         }
@@ -624,18 +649,20 @@ public class ServerImpl implements InterfazDeServer {
     }
 
     @Override
-    // Este método tiene como objetivo registrar una nueva cuenta de usuario en la base de datos local
-    public Usuario registrarUsuario(String username, String password, String email) throws Exception {
-        String insertSql = "INSERT INTO usuarios (nombre_usuario, contrasena, correo, saldo_billetera) VALUES (?, ?, ?, 0.00)";
+    // Este método tiene como objetivo registrar una nueva cuenta de usuario en la
+    // base de datos local
+    public Usuario registrarUsuario(String username, String password, String email, String codigoPais) throws Exception {
+        String insertSql = "INSERT INTO usuarios (nombre_usuario, contrasena, correo, saldo_billetera, codigo_pais) VALUES (?, ?, ?, 0.00, ?)";
         try (PreparedStatement ps = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setString(1, username);
             ps.setString(2, toMD5(password)); // Almacenar contraseña con su hash MD5
             ps.setString(3, email);
+            ps.setString(4, codigoPais);
             int rows = ps.executeUpdate();
             if (rows > 0) {
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
-                        return new Usuario(rs.getInt(1), username, email, 0.00);
+                        return new Usuario(rs.getInt(1), username, email, 0.00, codigoPais);
                     }
                 }
             }
@@ -646,9 +673,11 @@ public class ServerImpl implements InterfazDeServer {
     }
 
     @Override
-    // Este método tiene como objetivo realizar una compra segura mediante transacciones atómicas distribuidas
+    // Este método tiene como objetivo realizar una compra segura mediante
+    // transacciones atómicas distribuidas
     public boolean comprarJuego(int userId, int gameId, double precioUSD) throws Exception {
-        // Ejecutar transacción de compra atómica con bloqueo a nivel de registro (Row-Level Locking)
+        // Ejecutar transacción de compra atómica con bloqueo a nivel de registro
+        // (Row-Level Locking)
         try {
             connection.setAutoCommit(false);
 
@@ -664,7 +693,8 @@ public class ServerImpl implements InterfazDeServer {
                 }
             }
 
-            // 2. Verificar saldo con FOR UPDATE para bloquear la fila contra escrituras simultaneas de otros servidores
+            // 2. Verificar saldo con FOR UPDATE para bloquear la fila contra escrituras
+            // simultaneas de otros servidores
             String balanceSql = "SELECT saldo_billetera FROM usuarios WHERE id = ? FOR UPDATE";
             double saldo = 0;
             try (PreparedStatement ps = connection.prepareStatement(balanceSql)) {
@@ -679,7 +709,8 @@ public class ServerImpl implements InterfazDeServer {
             }
 
             if (saldo < precioUSD) {
-                throw new Exception("Saldo insuficiente en tu billetera de Steam (" + saldo + " USD vs " + precioUSD + " USD).");
+                throw new Exception(
+                        "Saldo insuficiente en tu billetera de Steam (" + saldo + " USD vs " + precioUSD + " USD).");
             }
 
             // Descontar saldo de billetera
@@ -716,12 +747,11 @@ public class ServerImpl implements InterfazDeServer {
         } finally {
             connection.setAutoCommit(true);
         }
-     }
-
-
+    }
 
     @Override
-    // Este método tiene como objetivo recargar dinero a la billetera virtual del usuario de forma atómica
+    // Este método tiene como objetivo recargar dinero a la billetera virtual del
+    // usuario de forma atómica
     public double recargarSaldo(int userId, double montoUSD) throws Exception {
         if (montoUSD <= 0) {
             throw new Exception("El monto a recargar debe ser mayor a 0.");
@@ -746,7 +776,8 @@ public class ServerImpl implements InterfazDeServer {
     }
 
     @Override
-    // Este método tiene como objetivo obtener todos los juegos comprados por un usuario
+    // Este método tiene como objetivo obtener todos los juegos comprados por un
+    // usuario
     public synchronized ArrayList<Juego> obtenerBiblioteca(int userId) throws Exception {
         ArrayList<Juego> biblioteca = new ArrayList<>();
         String sql = "SELECT g.* FROM bibliotecas l JOIN juegos g ON l.id_juego = g.id WHERE l.id_usuario = ?";
@@ -755,9 +786,8 @@ public class ServerImpl implements InterfazDeServer {
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     biblioteca.add(new Juego(
-                        rs.getString("nombre"),
-                        rs.getInt("id")
-                    ));
+                            rs.getString("nombre"),
+                            rs.getInt("id")));
                 }
             }
         }
@@ -765,7 +795,8 @@ public class ServerImpl implements InterfazDeServer {
     }
 
     @Override
-    // Este método tiene como objetivo calcular la intersección de juegos entre varios perfiles locales en paralelo
+    // Este método tiene como objetivo calcular la intersección de juegos entre
+    // varios perfiles locales en paralelo
     public ArrayList<Juego> obtenerJuegosEnComunLocal(ArrayList<String> usernames) {
         if (usernames == null || usernames.isEmpty()) {
             return new ArrayList<>();
@@ -779,23 +810,23 @@ public class ServerImpl implements InterfazDeServer {
                     .map(username -> CompletableFuture.supplyAsync(() -> {
                         ArrayList<Juego> userLibrary = new ArrayList<>();
                         String sql = "SELECT g.* FROM bibliotecas l "
-                                   + "JOIN usuarios u ON l.id_usuario = u.id "
-                                   + "JOIN juegos g ON l.id_juego = g.id "
-                                   + "WHERE u.nombre_usuario = ?";
+                                + "JOIN usuarios u ON l.id_usuario = u.id "
+                                + "JOIN juegos g ON l.id_juego = g.id "
+                                + "WHERE u.nombre_usuario = ?";
                         // Creamos una conexión exclusiva por cada hilo concurrente para evitar bloqueos
                         try (Connection threadConn = createThreadConnection();
-                             PreparedStatement ps = threadConn.prepareStatement(sql)) {
+                                PreparedStatement ps = threadConn.prepareStatement(sql)) {
                             ps.setString(1, username);
                             try (ResultSet rs = ps.executeQuery()) {
                                 while (rs.next()) {
                                     userLibrary.add(new Juego(
-                                        rs.getString("nombre"),
-                                        rs.getInt("id")
-                                    ));
+                                            rs.getString("nombre"),
+                                            rs.getInt("id")));
                                 }
                             }
                         } catch (Exception e) {
-                            System.err.println("Error consultando biblioteca local de " + username + ": " + e.getMessage());
+                            System.err.println(
+                                    "Error consultando biblioteca local de " + username + ": " + e.getMessage());
                         }
                         return userLibrary;
                     }, executor))
@@ -807,7 +838,8 @@ public class ServerImpl implements InterfazDeServer {
                     .map(CompletableFuture::join)
                     .collect(Collectors.toList());
 
-            if (todasLasBibliotecas.isEmpty()) return new ArrayList<>();
+            if (todasLasBibliotecas.isEmpty())
+                return new ArrayList<>();
 
             ArrayList<Juego> interseccion = new ArrayList<>(todasLasBibliotecas.get(0));
 
@@ -822,6 +854,43 @@ public class ServerImpl implements InterfazDeServer {
             return interseccion;
         } finally {
             executor.shutdown();
+        }
+    }
+
+    // Retorna la moneda correspondiente a cada ID de país según la BD
+    private String getCurrencyForCountry(String countryCode) {
+        if (countryCode == null) return "USD";
+        switch (countryCode.toLowerCase()) {
+            case "us": return "USD";
+            case "cl": return "CLP";
+            case "in": return "INR";
+            case "br": return "BRL";
+            case "ca": return "CAD";
+            case "cn": return "CNY";
+            case "es": return "EUR";
+            case "mx": return "MXN";
+            case "pe": return "PEN";
+            case "tr": return "TRY";
+            case "au": return "AUD";
+            default: return "USD";
+        }
+    }
+
+    // Formatea el precio local según los estándares de Steam
+    private String formatLocalPrice(double price, String currency) {
+        switch (currency) {
+            case "CLP": return String.format("CLP$ %,.0f", price).replace(',', '.');
+            case "INR": return String.format("₹ %,.0f", price);
+            case "EUR": return String.format("%,.2f€", price);
+            case "USD": return String.format("$%,.2f", price);
+            case "CAD": return String.format("CDN$ %,.2f", price);
+            case "AUD": return String.format("A$ %,.2f", price);
+            case "BRL": return String.format("R$ %,.2f", price).replace('.', ',');
+            case "CNY": return String.format("¥ %,.2f", price);
+            case "MXN": return String.format("Mex$ %,.2f", price);
+            case "PEN": return String.format("S/.%,.2f", price);
+            case "TRY": return String.format("$%,.2f USD", price);
+            default: return String.format("%.2f %s", price, currency);
         }
     }
 }

@@ -74,13 +74,13 @@ CREATE TABLE `juegos` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `juegos` (`id`, `nombre`) VALUES
-(400, 'Portal'),
+(319510, "Five Nights at Freddy's"),
 (550, 'Left 4 Dead 2'),
 (570, 'Dota 2'),
 (730, 'Counter-Strike 2'),
 (105600, 'Terraria'),
 (252490, 'Rust'),
-(271590, 'Grand Theft Auto V'),
+(271590, 'Grand Theft Auto V Enhanced'),
 (292030, 'The Witcher 3: Wild Hunt'),
 (413150, 'Stardew Valley'),
 (1091500, 'Cyberpunk 2077'),
@@ -96,16 +96,18 @@ CREATE TABLE `usuarios` (
   `contrasena` varchar(255) NOT NULL,
   `correo` varchar(100) NOT NULL UNIQUE,
   `saldo_billetera` decimal(10,2) DEFAULT 0.00,
+  `codigo_pais` varchar(10) NOT NULL DEFAULT 'cl',
   `creado_en` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_usuario_pais` FOREIGN KEY (`codigo_pais`) REFERENCES `paises` (`codigo_pais`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Usuarios de prueba con contraseñas cifradas en MD5 (ejemplo: '123456' -> 'e10adc3949ba59abbe56e057f20f883e')
-INSERT INTO `usuarios` (`id`, `nombre_usuario`, `contrasena`, `correo`, `saldo_billetera`) VALUES
-(1, 'gabeneuell', 'e10adc3949ba59abbe56e057f20f883e', 'gabe@valvesoftware.com', 9999.99),
-(2, 'migue_gamer', 'e10adc3949ba59abbe56e057f20f883e', 'migue@ejemplo.com', 50.00),
-(3, 'chilean_pro', 'e10adc3949ba59abbe56e057f20f883e', 'chilean@ejemplo.com', 12.50),
-(4, 'rust_fanatic', 'e10adc3949ba59abbe56e057f20f883e', 'rust@ejemplo.com', 0.00);
+INSERT INTO `usuarios` (`id`, `nombre_usuario`, `contrasena`, `correo`, `saldo_billetera`, `codigo_pais`) VALUES
+(1, 'gabeneuell', 'e10adc3949ba59abbe56e057f20f883e', 'gabe@valvesoftware.com', 9999.99, 'us'),
+(2, 'migue_gamer', 'e10adc3949ba59abbe56e057f20f883e', 'migue@ejemplo.com', 50.00, 'cl'),
+(3, 'chilean_pro', 'e10adc3949ba59abbe56e057f20f883e', 'chilean@ejemplo.com', 12.50, 'cl'),
+(4, 'rust_fanatic', 'e10adc3949ba59abbe56e057f20f883e', 'rust@ejemplo.com', 0.00, 'cl');
 
 -- --------------------------------------------------------
 -- 5. TABLA: `bibliotecas`
@@ -122,13 +124,13 @@ CREATE TABLE `bibliotecas` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `bibliotecas` (`id_usuario`, `id_juego`, `minutos_jugados`) VALUES
-(1, 400, 3600),
+(1, 319510, 3600),
 (1, 550, 12000),
 (1, 730, 99999),
-(2, 400, 180),
+(2, 319510, 180),
 (2, 550, 4800),
 (2, 105600, 300),
-(3, 400, 450),
+(3, 319510, 450),
 (3, 550, 7200),
 (3, 1245620, 90),
 (4, 550, 24000),
@@ -150,10 +152,10 @@ CREATE TABLE `compras` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `compras` (`id`, `id_usuario`, `id_juego`, `monto_pagado`) VALUES
-(1, 2, 400, 9.99),
+(1, 2, 319510, 9.99),
 (2, 2, 550, 9.99),
 (3, 2, 105600, 4.99),
-(4, 3, 400, 9.99),
+(4, 3, 319510, 9.99),
 (5, 3, 550, 9.99),
 (6, 3, 1245620, 59.99),
 (7, 4, 550, 9.99),

@@ -10,10 +10,6 @@ public class RunClient {
             hosts = args[0].split(",");
         } else {
             Scanner sc = new Scanner(System.in);
-            System.out.println("╔════════════════════════════════════════════╗");
-            System.out.println("║   Comparador de Precios Steam              ║");
-            System.out.println("║   Cliente Distribuido - Tolerancia a fallos║");
-            System.out.println("╚════════════════════════════════════════════╝");
             System.out.println(" Puede ingresar varios servidores separados por coma.");
             System.out.print(" Ingrese IPs/Puertos (Enter = localhost:1009,localhost:1010): ");
             String input = sc.nextLine().trim();

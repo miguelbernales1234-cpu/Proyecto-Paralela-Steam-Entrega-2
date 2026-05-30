@@ -150,7 +150,7 @@ public class ClientHandler implements Runnable {
                 }
 
             case REGISTRAR_USUARIO:
-                Usuario userReg = server.registrarUsuario((String) p[0], (String) p[1], (String) p[2]);
+                Usuario userReg = server.registrarUsuario((String) p[0], (String) p[1], (String) p[2], (String) p[3]);
                 if (userReg != null) {
                     return new Response(true, userReg);
                 } else {
