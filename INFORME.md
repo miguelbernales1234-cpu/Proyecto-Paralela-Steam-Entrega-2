@@ -29,6 +29,17 @@ Para resolver el ordenamiento causal sin depender de relojes físicos, implement
 El sistema garantiza **Transparencia de Acceso** y **Transparencia de Ubicación**:
 *   **Transparencia de Acceso:** Los clientes externos (`Client.java`) interactúan con los nodos distribuidos utilizando exactamente la misma interfaz y protocolo de sockets que utilizaban con el servidor centralizado. El cliente no percibe que por debajo hay algoritmos de exclusión mutua o relojes lógicos coordinando la base de datos.
 *   **Transparencia de Ubicación:** El cliente se conecta a cualquiera de los nodos disponibles (puertos `5000`, `5001` o `5002`) de manera indistinta. Todas las consultas de búsqueda de juegos y comparación regional se responden con el mismo formato. Si un nodo cae, el cliente simplemente se conecta a otro nodo disponible en el cluster, manteniendo el servicio activo.
+*   **Transparencia de Ubicación de Persistencia:** Para el despliegue multinodo en máquinas físicas reales de la red local, la ubicación de la base de datos MySQL no es rígida. Mediante variables de entorno en [ServerImpl.java](file:///Users/dazinha/Desktop/ICI%20PUCV/9%C2%B0%20Semestre%20ICI%20PUCV/Computacion%20Paralela/Proyecto-Paralela-Steam-Entrega-2-main/src/server/ServerImpl.java), los nodos resuelven dinámicamente la dirección del host MySQL compartido (`DB_HOST`), permitiendo descentralizar los nodos de cómputo y centralizar la persistencia sin forzar bases de datos locales inconsistentes.
+
+### 1.4 Dos Funciones Principales y Justificación de su Distribución
+El sistema distribuido está estructurado en base a dos funciones primordiales del negocio, cuya descentralización responde a necesidades claras de rendimiento, consistencia y disponibilidad:
+
+1.  **Consulta y Comparación Regional de Precios (Operación de Lectura):**
+    *   *Descripción:* Permite buscar títulos del catálogo y consultar los precios de los juegos en diferentes monedas locales y su conversión a dólares de forma concurrente desde la API de Steam.
+    *   *Justificación de Distribución:* Al ser lecturas puras que representan el 90% del tráfico, distribuirlas permite la escalabilidad horizontal lineal. Las consultas se pueden procesar en cualquier réplica de forma totalmente paralela y asíncrona, descongestionando los nodos transaccionales y mejorando sustancialmente el rendimiento global del sistema sin requerir bloqueos de red costosos.
+2.  **Transacciones de Compra y Recarga de Billetera (Operación de Escritura / Recurso Crítico):**
+    *   *Descripción:* Permite recargar saldo de forma atómica en la cuenta de un usuario y realizar la compra de un videojuego deduciendo saldo de su balance virtual y registrándolo en su biblioteca personal.
+    *   *Justificación de Distribución:* Al modificar el estado y saldo del usuario (recurso crítico), es imperativo que las escrituras se coordinen para evitar condiciones de carrera (como dobles compras con saldo insuficiente). Distribuir esta lógica con Ricart-Agrawala y ordenarla mediante relojes de Lamport garantiza que el estado sea consistente en todo el cluster de manera descentralizada, eliminando el riesgo de que la caída de un servidor central detenga el flujo transaccional.
 
 ---
 
@@ -208,7 +219,7 @@ sequenceDiagram
 | :--- | :--- | :--- | :--- |
 | **Nodo Coordinador** | Crash-Stop (Apagado / Caída física) | Los nodos esclavos dejan de recibir mensajes `LATIDO` por más de 6 segundos en `GestorLatidos`. | El primer nodo en detectarlo inicia una ronda del algoritmo **Bully** (`EleccionBully`). El nodo activo con el ID más alto se auto-proclama nuevo coordinador. |
 | **Nodos Esclavos** | Crash-Stop | El coordinador y los demás pares detectan la ausencia de `LATIDO`. | Se marcan temporalmente como inactivos en el `RegistroNodos`. Ricart-Agrawala se adapta automáticamente, ya no esperando sus respuestas `RA_RESPUESTA` para la sección crítica. |
-| **Red / Enlaces** | Omisión de Mensajes | Tiempo de espera agotado (`SocketTimeoutException` en sockets de interconexión). | Se reintenta el envío. Si persiste la desconexión por 3 pings fallidos, se asume la caída del nodo remoto y se actualiza la membresía. |
+| **Red / Enlaces** | Omisión de Mensajes / Pérdida | Conexión fallida o tiempo de espera agotado (timeout de 1500 ms en sockets P2P y 1000 ms en heartbeats). | Se detecta la falla de red y se descarta el mensaje. El sistema se apoya en el `GestorLatidos` para marcar el nodo como caído tras 6 segundos de inactividad, lo que reorganiza dinámicamente el conjunto de respuestas esperadas en Ricart-Agrawala. |
 | **Base de Datos MySQL** | Crash / Desconexión | Excepciones JDBC (`SQLException`) capturadas en `ServerImpl`. | Los nodos capturan el error, devuelven un mensaje de error limpio al cliente (`Response` con éxito = false) y reintentan la conexión con un pool de conexiones interno. |
 
 ### 3.2 Análisis de Canales Expuestos y Amenazas de Seguridad
@@ -225,15 +236,54 @@ Nuestra arquitectura distribuida prioriza el rendimiento y la consistencia lógi
 
 ## 4. Análisis e Interpretación de Resultados (Sección 3)
 
-### 4.1 Métricas de Rendimiento Esperadas en el Generador de Carga
-Al someter al cluster a una prueba de 50 hilos concurrentes durante 60 segundos con `GeneradorCarga`, alternando operaciones de consulta (`BUSCAR_JUEGO`, `GET_PRECIOS_REGIONALES`) y operaciones protegidas por exclusión mutua (`COMPRAR_JUEGO`, `RECARGAR_SALDO`), se observan tres comportamientos clave:
+### 4.1 Métricas de Rendimiento Reales (Prueba de Carga de 60 Segundos)
+Sometimos el clúster a una prueba de carga con **50 hilos concurrentes** durante **60 segundos sostenidos** (duración real registrada de 69.56 segundos) a través de `GeneradorCarga`. Durante la ejecución se alternaron consultas de lectura (`BUSCAR_JUEGO` y `GET_PRECIOS_REGIONALES`) con operaciones de exclusión mutua transaccional (`COMPRAR_JUEGO`).
 
-1.  **Throughput Promedio:**
-    *   Las operaciones de **Lectura** (búsqueda y precios regionales) escalan horizontalmente y de manera lineal, ya que no requieren ninguna coordinación distribuida (se atienden localmente consultando la réplica o base de datos local).
-    *   Las operaciones de **Escritura** (compra y recarga de saldo) experimentan un cuello de botella controlado debido al protocolo de Ricart-Agrawala. Al requerir la confirmación activa de todos los nodos remotos ($N-1$ mensajes `RA_SOLICITUD` y `RA_RESPUESTA`), el throughput de escritura disminuye ligeramente a medida que el número de nodos aumenta.
-2.  **Latencia P95 (Percentil 95):**
-    *   La latencia P95 para consultas de lectura se mantiene extremadamente baja (ej. < 15ms), ya que la base de datos MySQL local atiende las consultas casi instantáneamente a través de índices.
-    *   La latencia P95 para transacciones de compra se eleva (ej. ~120ms) debido a que incluye el viaje de ida y vuelta del socket inter-nodo (latencia de red) y el tiempo en la sección crítica.
-3.  **Comportamiento ante Falla Inducida:**
-    *   Al matar al coordinador activo durante la prueba, la latencia P95 tiene un pico transitorio de aproximadamente **3 a 4 segundos**. Este pico corresponde al tiempo en que el `GestorLatidos` declara la muerte del nodo (6 segundos máximo) y el algoritmo `EleccionBully` completa la ronda de votación y re-establece al nuevo coordinador.
-    *   Una vez electo el nuevo líder, el tráfico vuelve a su cauce normal de manera completamente transparente para los clientes activos, con una tasa de error final cercana al **0%** si los clientes tienen reintentos de conexión.
+> [!NOTE]
+> **Consistencia en Datos de Prueba:** Los identificadores de juegos simulados en [GeneradorCarga.java](file:///Users/dazinha/Desktop/ICI%20PUCV/9%C2%B0%20Semestre%20ICI%20PUCV/Computacion%20Paralela/Proyecto-Paralela-Steam-Entrega-2-main/src/load/GeneradorCarga.java) se alinean estrictamente con los cargados en base de datos por [project_db.sql](file:///Users/dazinha/Desktop/ICI%20PUCV/9%C2%B0%20Semestre%20ICI%20PUCV/Computacion%20Paralela/Proyecto-Paralela-Steam-Entrega-2-main/BD/project_db.sql). Esto garantiza que la tasa de error reflejada a continuación represente puramente las restricciones lógicas del negocio (saldo insuficiente, juegos duplicados en la biblioteca) y no inconsistencias en las claves de acceso de la persistencia relacional.
+
+A continuación se presenta la tabla resumen de las métricas de rendimiento recolectadas en el log de la prueba:
+
+| Métrica | Valor Obtenido | Descripción |
+| :--- | :---: | :--- |
+| **Duración Total** | 69.56 s | Tiempo total de ejecución sostenido. |
+| **Peticiones Totales** | 5,973 | Suma global de peticiones enviadas al clúster. |
+| **Peticiones Exitosas** | 3,994 | Peticiones procesadas con éxito por las réplicas. |
+| **Peticiones Fallidas** | 1,979 | Intentos fallidos (ej. saldo insuficiente o juego ya poseído por el usuario). |
+| **Tasa de Error Global** | 33.13% | Porcentaje de operaciones fallidas a nivel lógico de negocio. |
+| **Throughput Promedio** | **85.86 req/s** | Cantidad de peticiones atendidas por segundo por el clúster. |
+| **Latencia Mínima** | 0 ms | Tiempo de respuesta mínimo registrado en consultas locales en caché. |
+| **Latencia Promedio** | **40.72 ms** | Tiempo medio de respuesta a través de todo el tráfico. |
+| **Latencia P95** | **69 ms** | Percentil 95 de tiempo de respuesta (el 95% tardó menos de 69 ms). |
+| **Latencia Máxima** | 1,315 ms | Latencia máxima registrada durante el pico de caída y re-organización. |
+
+### 4.2 Cantidad de Mensajes del Algoritmo de Coordinación
+El algoritmo de exclusión mutua distribuida de **Ricart-Agrawala** generó un intercambio coordinado de mensajes P2P (`RA_SOLICITUD` y `RA_RESPUESTA`) para proteger las operaciones críticas de base de datos. Los contadores registrados por nodo al término de la prueba fueron:
+
+*   **Nodo-1 (`localhost:5000`):** 2,952 mensajes de coordinación.
+*   **Nodo-2 (`localhost:5001`):** 2,436 mensajes de coordinación.
+*   **Nodo-3 (`localhost:5002`):** *NO DISPONIBLE* (Nodo derribado a los ~25 segundos).
+*   **Total de Mensajes P2P Generados:** **5,388 mensajes**.
+
+### 4.3 Comportamiento ante Falla Inducida y Recuperación
+A los **25 segundos** de iniciada la prueba de carga, se indujo un fallo físico deteniendo el proceso del **Nodo-3 (Coordinador)**. 
+
+1.  **Detección:** El `GestorLatidos` en los nodos esclavos (Nodo 1 y Nodo 2) detectó la pérdida de latidos tras 6 segundos de inactividad.
+2.  **Reorganización y Re-elección (Bully):** El Nodo-2 inició la ronda de elección Bully y se proclamó nuevo coordinador, notificando al Nodo-1.
+3.  **Adaptación de Exclusión Mutua (Ricart-Agrawala):** Al ser notificado de la caída, `RicartAgrawala` de forma automática adaptó su lista de miembros esperados, ignorando al Nodo-3 y permitiendo que la sección crítica continuara operando con el quórum de nodos activos.
+4.  **Impacto en Rendimiento:** Durante la re-elección de Bully, la latencia máxima experimentó un pico temporal de **1,315 ms**. Sin embargo, gracias al mecanismo de *failover* activo en el cliente y al ajuste del quórum, no hubo pérdida de peticiones por caídas de red y el throughput se estabilizó de nuevo a ~85 req/s.
+
+### 4.4 Gráfico de Rendimiento (Latencia vs Throughput)
+El siguiente gráfico ilustra la evolución temporal de la latencia y el throughput durante la prueba de carga, destacando la inyección de la falla y la recuperación automática del sistema distribuido:
+
+![Gráfico de Métricas de Carga y Falla Inducida](logs/load_test_metrics.png)
+
+---
+
+## 5. Logs de Corrida y Evidencias Adjuntas
+Las trazas completas con marcas de tiempo lógico de Lamport, elecciones de Bully, exclusiones de Ricart-Agrawala y registros de latencia se encuentran adjuntas en el directorio de evidencias de la entrega:
+*   **Log del Generador de Carga:** [load_test_20260604_232421.log](logs/load_test_20260604_232421.log)
+*   **Log del Nodo 1 (Slave/Pares):** [nodo1.log](logs/nodo1.log)
+*   **Log del Nodo 2 (Pares/Nuevo Coordinador):** [nodo2.log](logs/nodo2.log)
+*   **Log del Nodo 3 (Coordinador Inicial Caído):** [nodo3.log](logs/nodo3.log)
+

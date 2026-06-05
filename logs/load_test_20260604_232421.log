@@ -1,0 +1,33 @@
+════════════════════════════════════════════════════════════
+  INICIANDO PRUEBA DE CARGA
+  Host: localhost:5000 | Hilos: 50 | Duración: 60 s
+════════════════════════════════════════════════════════════
+[GeneradorCarga] Todos los 50 hilos iniciados.
+
+════════════════════════════════════════════════════════════
+        REPORTE DE PRUEBA DE CARGA — Steam Distribuido
+════════════════════════════════════════════════════════════
+  Duración total      : 69,56 s
+  Peticiones totales  : 5973
+  Peticiones exitosas : 3994
+  Peticiones fallidas : 1979
+  Tasa de error       : 33,13 %
+────────────────────────────────────────────────────────────
+  Throughput          : 85,86 req/s
+  Latencia mínima     : 0 ms
+  Latencia promedio   : 40,72 ms
+  Latencia P95        : 69 ms
+  Latencia máxima     : 1315 ms
+════════════════════════════════════════════════════════════
+────────────────────────────────────────────────────────────
+  MÉTRICAS DE COORDINACIÓN DISTRIBUIDA (RICART-AGRAWALA)
+────────────────────────────────────────────────────────────
+[RegistroNodos] Nodos cargados: 3
+  [Coordinación] Nodo-1 (localhost:5000): 2952 mensajes (Req/Rep SC)
+  [Coordinación] Nodo-2 (localhost:5001): 2436 mensajes (Req/Rep SC)
+  [Coordinación] Nodo-3 (localhost:5002): NO DISPONIBLE (Nodo caído)
+────────────────────────────────────────────────────────────
+  Total Mensajes de Coordinación (Ricart-Agrawala): 5388
+════════════════════════════════════════════════════════════
+
+[EjecutarCarga] Log guardado en: /Users/dazinha/Desktop/ICI PUCV/9° Semestre ICI PUCV/Computacion Paralela/Proyecto-Paralela-Steam-Entrega-2-main/logs/load_test_20260604_232421.log

@@ -68,13 +68,14 @@ public class GestorLatidos {
     private void enviarLatidos() {
         long t = reloj.tick();
         for (InfoNodo par : registro.obtenerPares(miId)) {
-            if (Boolean.TRUE.equals(nodosFallidos.get(par.obtenerIdNodo()))) continue;
-            try (Socket s = new Socket(par.obtenerHost(), par.obtenerPuertoPeer());
-                 ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream())) {
+            try (Socket s = new Socket()) {
+                s.connect(new java.net.InetSocketAddress(par.obtenerHost(), par.obtenerPuertoPeer()), 1000);
                 s.setSoTimeout(1000);
-                MensajeNodo latido = new MensajeNodo(MensajeNodo.Tipo.LATIDO, miId, t, null);
-                out.writeObject(latido);
-                out.flush();
+                try (ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream())) {
+                    MensajeNodo latido = new MensajeNodo(MensajeNodo.Tipo.LATIDO, miId, t, null);
+                    out.writeObject(latido);
+                    out.flush();
+                }
             } catch (Exception e) {
                 // Ignorar: el supervisor de pares detectará la caída
             }

@@ -40,6 +40,14 @@ public class ServerImpl implements InterfazDeServer {
             ? System.getenv("STEAM_API_KEY")
             : "8D9E6D169F3A14A3D20CEA4A6E289CCC"; // Fallback: definir la variable de entorno STEAM_API_KEY
 
+    // Parámetros de base de datos configurables vía variables de entorno
+    private static final String DB_HOST = System.getenv("DB_HOST") != null ? System.getenv("DB_HOST") : "localhost";
+    private static final String DB_PORT = System.getenv("DB_PORT") != null ? System.getenv("DB_PORT") : "3306";
+    private static final String DB_NAME = System.getenv("DB_NAME") != null ? System.getenv("DB_NAME") : "project_db_extended";
+    private static final String DB_USER = System.getenv("DB_USER") != null ? System.getenv("DB_USER") : "root";
+    private static final String DB_PASS = System.getenv("DB_PASS") != null ? System.getenv("DB_PASS") : "";
+    private static final String DB_URL  = "jdbc:mysql://" + DB_HOST + ":" + DB_PORT + "/" + DB_NAME;
+
     // Este metodo tiene como objetivo inicializar el servidor y conectarlo a la
     // base de datos
     public ServerImpl() {
@@ -507,10 +515,7 @@ public class ServerImpl implements InterfazDeServer {
     public synchronized void conectarBD() {
         try {
             if (connection == null || connection.isClosed()) {
-                String url = "jdbc:mysql://localhost:3306/project_db_extended";
-                String username = "root";
-                String password_BD = "";
-                connection = DriverManager.getConnection(url, username, password_BD);
+                connection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
                 System.out.println("Conexión con la BD exitosa!");
             }
 
@@ -645,7 +650,7 @@ public class ServerImpl implements InterfazDeServer {
     // Este método tiene como objetivo abrir una conexión independiente para evitar
     // conflictos de hilos
     private Connection createThreadConnection() throws SQLException {
-        return DriverManager.getConnection("jdbc:mysql://localhost:3306/project_db_extended", "root", "");
+        return DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);
     }
 
     @Override

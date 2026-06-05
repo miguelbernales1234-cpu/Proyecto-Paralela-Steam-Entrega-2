@@ -35,12 +35,14 @@ public class GeneradorCarga {
     private final int cantidadHilos;
     private final long duracionMs;
     private final ColectorMetricas metricas;
+    private final java.util.List<node.InfoNodo> nodosConfig;
+    private final java.util.concurrent.atomic.AtomicInteger currentServerIndex = new java.util.concurrent.atomic.AtomicInteger(0);
     
     // Reloj de Lamport local silencioso para evitar inundar la consola con miles de logs
     private final node.RelojLamport relojLocal = new node.RelojLamport(888, true);
 
-    // IDs de juegos populares de Steam para usar en las pruebas
-    private static final int[] GAME_IDS = {730, 578080, 1172470, 271590, 892970, 1091500};
+    // IDs de juegos populares de Steam para usar en las pruebas (alineados con la BD para evitar violaciones de clave foránea)
+    private static final int[] GAME_IDS = {730, 550, 271590, 1091500, 319510, 1245620};
 
     // Países para consultar precios regionales
     private static final String[] CODIGOS_PAISES = {"US", "CL", "AR", "BR", "MX", "ES"};
@@ -54,6 +56,19 @@ public class GeneradorCarga {
         this.cantidadHilos = cantidadHilos;
         this.duracionMs    = duracionSegundos * 1000L;
         this.metricas      = new ColectorMetricas();
+        
+        // Cargar lista de nodos para Failover
+        node.RegistroNodos registro = new node.RegistroNodos("nodes.txt");
+        this.nodosConfig = registro.obtenerTodosLosNodos();
+        
+        // Encontrar índice del servidor inicial en la lista
+        for (int i = 0; i < nodosConfig.size(); i++) {
+            node.InfoNodo n = nodosConfig.get(i);
+            if (n.obtenerHost().equalsIgnoreCase(host) && n.obtenerPuertoCliente() == puerto) {
+                this.currentServerIndex.set(i);
+                break;
+            }
+        }
     }
 
     /**
@@ -197,37 +212,61 @@ public class GeneradorCarga {
         enviarPeticion(new Request(Request.Command.COMPRAR_JUEGO, userId, gameId, precio));
     }
 
-    // Este metodo tiene como objetivo conectar al nodo, enviar una peticion y registrar la latencia
+    // Este metodo tiene como objetivo conectar al nodo, enviar una peticion y registrar la latencia con tolerancia a fallos
     private void enviarPeticion(Request req) {
         long inicio = System.currentTimeMillis();
-        try (Socket socket = new Socket(host, puerto);
-             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-             ObjectInputStream  in  = new ObjectInputStream(socket.getInputStream())) {
-
-            socket.setSoTimeout(5000); // Timeout de 5 segundos
-            
-            // Asignar el tiempo de Lamport del generador
-            req.setLamportTime(relojLocal.tick());
-            
-            out.writeObject(req);
-            out.flush();
-
-            Response response = (Response) in.readObject();
-            
-            // Actualizar el reloj lógico con el retornado por el servidor
-            relojLocal.update(response.getLamportTime());
-            
-            long latencia = System.currentTimeMillis() - inicio;
-
-            if (response.isSuccess()) {
-                metricas.registrarExito(latencia);
-            } else {
-                // Contar errores de aplicación (saldo insuficiente, juego ya comprado, etc.)
-                metricas.registrarFallo();
+        int maxRetries = nodosConfig.isEmpty() ? 1 : nodosConfig.size();
+        
+        for (int retry = 0; retry < maxRetries; retry++) {
+            int index = (currentServerIndex.get() + retry) % maxRetries;
+            String targetHost = host;
+            int targetPort = puerto;
+            if (!nodosConfig.isEmpty()) {
+                node.InfoNodo targetNode = nodosConfig.get(index);
+                targetHost = targetNode.obtenerHost();
+                targetPort = targetNode.obtenerPuertoCliente();
             }
-        } catch (Exception e) {
-            // Error de red: timeout, conexión rechazada, etc.
-            metricas.registrarFallo();
+            
+            try (Socket socket = new Socket()) {
+                socket.connect(new java.net.InetSocketAddress(targetHost, targetPort), 1500);
+                socket.setSoTimeout(5000); // Timeout de 5 segundos para lectura
+                
+                try (ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+                     ObjectInputStream  in  = new ObjectInputStream(socket.getInputStream())) {
+                    
+                    // Asignar el tiempo de Lamport del generador
+                    req.setLamportTime(relojLocal.tick());
+                    
+                    out.writeObject(req);
+                    out.flush();
+
+                    Response response = (Response) in.readObject();
+                    
+                    // Actualizar el reloj lógico con el retornado por el servidor
+                    relojLocal.update(response.getLamportTime());
+                    
+                    long latencia = System.currentTimeMillis() - inicio;
+
+                    if (response.isSuccess()) {
+                        metricas.registrarExito(latencia);
+                    } else {
+                        // Contar errores de aplicación (saldo insuficiente, juego ya comprado, etc.)
+                        metricas.registrarFallo();
+                    }
+                    
+                    // Si nos conectamos con éxito a un nodo secundario, actualizar el índice actual para los siguientes envíos
+                    if (index != currentServerIndex.get()) {
+                        currentServerIndex.set(index);
+                    }
+                    return; // Petición exitosa, salir del método
+                }
+            } catch (Exception e) {
+                // Si es el último intento, registrar la petición como fallida
+                if (retry == maxRetries - 1) {
+                    metricas.registrarFallo();
+                }
+                // Si no, la excepción se ignora y el bucle pasa al siguiente nodo (failover)
+            }
         }
     }
 

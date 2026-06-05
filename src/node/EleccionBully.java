@@ -28,6 +28,7 @@ public class EleccionBully {
     private final AtomicInteger idCoordinador;
     private final AtomicBoolean eleccionEnProgreso;
     private final AtomicBoolean recibidoOK;
+    private final AtomicInteger idEleccionActual = new AtomicInteger(0);
 
     // Este metodo tiene como objetivo inicializar el modulo de eleccion Bully para un nodo especifico
     public EleccionBully(int miId, RegistroNodos registro, RelojLamport reloj) {
@@ -48,9 +49,10 @@ public class EleccionBully {
             return; // Ya hay una elección en progreso
         }
         recibidoOK.set(false);
+        int rondaElecta = idEleccionActual.incrementAndGet();
 
         long t = reloj.tick();
-        System.out.println("[BULLY][Nodo-" + miId + "] INICIANDO ELECCION (lamport=" + t + ")");
+        System.out.println("[BULLY][Nodo-" + miId + "] INICIANDO ELECCION (ronda=" + rondaElecta + ", lamport=" + t + ")");
 
         List<InfoNodo> nodosMayores = registro.obtenerNodosConIdMayor(miId);
 
@@ -69,6 +71,7 @@ public class EleccionBully {
         Thread temporizador = new Thread(() -> {
             try {
                 Thread.sleep(TIEMPO_ESPERA_MS);
+                if (rondaElecta != idEleccionActual.get()) return;
                 if (!recibidoOK.get()) {
                     // Nadie respondió → me declaro coordinador
                     declararCoordinador();
@@ -76,6 +79,7 @@ public class EleccionBully {
                     // Alguien con mayor ID respondió → esperar que anuncie COORDINADOR
                     System.out.println("[BULLY][Nodo-" + miId + "] Recibí OK, esperando COORDINADOR...");
                     Thread.sleep(TIEMPO_ESPERA_MS * 2);
+                    if (rondaElecta != idEleccionActual.get()) return;
                     if (eleccionEnProgreso.get()) {
                         // El nodo mayor tampoco anunció → reiniciar elección
                         eleccionEnProgreso.set(false);
@@ -156,10 +160,12 @@ public class EleccionBully {
 
     // Este metodo tiene como objetivo enviar un MensajeNodo a un nodo destino via socket
     private void enviarMensaje(InfoNodo destino, MensajeNodo msg) {
-        try (Socket s = new Socket(destino.obtenerHost(), destino.obtenerPuertoPeer());
-             ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream())) {
-            out.writeObject(msg);
-            out.flush();
+        try (Socket s = new Socket()) {
+            s.connect(new java.net.InetSocketAddress(destino.obtenerHost(), destino.obtenerPuertoPeer()), 1500);
+            try (ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream())) {
+                out.writeObject(msg);
+                out.flush();
+            }
         } catch (Exception e) {
             System.err.println("[BULLY][Nodo-" + miId + "] No se pudo contactar a " + destino + ": " + e.getMessage());
         }

@@ -35,10 +35,16 @@ public class RicartAgrawala {
     // Nodos actualmente marcados como caídos
     private final java.util.Set<Integer> nodosFallidos = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
+    // Nodos a los que se les envió una solicitud y de los que se espera respuesta
+    private final java.util.Set<Integer> nodosEsperados = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     // Estado de la solicitud actual
     private volatile boolean deseandoSC    = false; // ¿Quiero entrar a la SC?
     private volatile boolean enSC          = false; // ¿Estoy en la SC?
     private volatile long    miTimestamp   = 0;     // Timestamp de mi última solicitud
+
+    // Objeto de bloqueo para sincronizar variables de estado y evitar condiciones de carrera (deadlocks)
+    private final Object lockEstado = new Object();
 
     // Cuántas RESPUESTAS necesito (= número de pares)
     private int cantidadPares;
@@ -60,21 +66,32 @@ public class RicartAgrawala {
      * Bloquea hasta obtener permiso de todos los pares activos.
      */
     public void requestAccess() throws InterruptedException {
-        deseandoSC  = true;
-        miTimestamp = reloj.tick();
-        System.out.println("[RA][Nodo-" + miId + "] SOLICITANDO SC (lamport=" + miTimestamp + ")");
-
         List<InfoNodo> pares = registro.obtenerPares(miId);
-        int nodosAEsperar = 0;
+        java.util.List<InfoNodo> aEnviar = new java.util.ArrayList<>();
+        int nodosAEsperar;
 
-        // Enviar SOLICITUD a todos los pares activos
-        for (InfoNodo par : pares) {
-            int idPar = par.obtenerIdNodo();
-            if (nodosFallidos.contains(idPar)) {
-                System.out.println("[RA][Nodo-" + miId + "] Ignorando Nodo-" + idPar + " en solicitud porque está marcado como caído.");
-                continue;
+        synchronized (lockEstado) {
+            deseandoSC  = true;
+            miTimestamp = reloj.tick();
+            nodosEsperados.clear();
+
+            // Registrar primero los pares activos que esperaremos
+            for (InfoNodo par : pares) {
+                int idPar = par.obtenerIdNodo();
+                if (nodosFallidos.contains(idPar)) {
+                    System.out.println("[RA][Nodo-" + miId + "] Ignorando Nodo-" + idPar + " en solicitud porque está marcado como caído.");
+                    continue;
+                }
+                nodosEsperados.add(idPar);
+                aEnviar.add(par);
             }
-            nodosAEsperar++;
+            nodosAEsperar = nodosEsperados.size();
+        }
+
+        System.out.println("[RA][Nodo-" + miId + "] SOLICITANDO SC (lamport=" + miTimestamp + ", esperando=" + nodosAEsperar + ")");
+
+        // Enviar SOLICITUD a todos los pares activos registrados sin retener el lock del estado
+        for (InfoNodo par : aEnviar) {
             MensajeNodo req = new MensajeNodo(
                     MensajeNodo.Tipo.RA_SOLICITUD, miId, miTimestamp, miTimestamp);
             enviarAPar(par, req);
@@ -83,7 +100,9 @@ public class RicartAgrawala {
 
         // Esperar RESPUESTA de todos los pares activos
         semaforoRespuestas.acquire(nodosAEsperar);
-        enSC = true;
+        synchronized (lockEstado) {
+            enSC = true;
+        }
         System.out.println("[RA][Nodo-" + miId + "] ENTRANDO A SC (lamport=" + reloj.obtenerTiempo() + ")");
     }
 
@@ -91,8 +110,10 @@ public class RicartAgrawala {
      * Libera la sección crítica y envía RESPUESTAS diferidas a los que esperaban.
      */
     public void releaseAccess() {
-        enSC       = false;
-        deseandoSC = false;
+        synchronized (lockEstado) {
+            enSC       = false;
+            deseandoSC = false;
+        }
         System.out.println("[RA][Nodo-" + miId + "] SALIENDO DE SC (lamport=" + reloj.obtenerTiempo() + ")");
 
         // Enviar RESPUESTAS diferidas a todos los que esperaban
@@ -117,22 +138,24 @@ public class RicartAgrawala {
                 + " (ts=" + timestampEmisor + ")");
 
         boolean diferir;
-        if (enSC) {
-            // Estoy en SC → diferir
-            diferir = true;
-        } else if (deseandoSC) {
-            // Quiero entrar → comparar timestamps
-            // Si mi timestamp es menor (o igual con menor ID) → diferir
-            if (miTimestamp < timestampEmisor) {
+        synchronized (lockEstado) {
+            if (enSC) {
+                // Estoy en SC → diferir
                 diferir = true;
-            } else if (miTimestamp == timestampEmisor && miId < idEmisor) {
-                diferir = true;
+            } else if (deseandoSC) {
+                // Quiero entrar → comparar timestamps
+                // Si mi timestamp es menor (o igual con menor ID) → diferir
+                if (miTimestamp < timestampEmisor) {
+                    diferir = true;
+                } else if (miTimestamp == timestampEmisor && miId < idEmisor) {
+                    diferir = true;
+                } else {
+                    diferir = false;
+                }
             } else {
+                // No quiero entrar → responder de inmediato
                 diferir = false;
             }
-        } else {
-            // No quiero entrar → responder de inmediato
-            diferir = false;
         }
 
         if (diferir) {
@@ -156,7 +179,13 @@ public class RicartAgrawala {
         reloj.update(tiempoRemoto);
         System.out.println("[RA][Nodo-" + miId + "] RESPUESTA RA recibida de Nodo-" + idEmisor
                 + " (lamport=" + reloj.obtenerTiempo() + ")");
-        semaforoRespuestas.release();
+        boolean esperado;
+        synchronized (lockEstado) {
+            esperado = nodosEsperados.remove(idEmisor);
+        }
+        if (esperado) {
+            semaforoRespuestas.release();
+        }
     }
 
     /**
@@ -167,8 +196,14 @@ public class RicartAgrawala {
         System.out.println("[RA][Nodo-" + miId + "] Par Nodo-" + idNodoFallido
                 + " cayó, liberando espera de RESPUESTA");
         nodosFallidos.add(idNodoFallido);
-        if (deseandoSC) {
-            semaforoRespuestas.release(); // Contar el nodo caído como si hubiera respondido
+        boolean esperado = false;
+        synchronized (lockEstado) {
+            if (deseandoSC) {
+                esperado = nodosEsperados.remove(idNodoFallido);
+            }
+        }
+        if (esperado) {
+            semaforoRespuestas.release(); // Contar el nodo caído como si hubiera respondido solo si lo esperábamos
         }
         // Limpiar respuestas diferidas para ese nodo
         synchronized (bloqueoDiferidos) {
@@ -192,10 +227,12 @@ public class RicartAgrawala {
 
     // Este metodo tiene como objetivo enviar un MensajeNodo a un nodo destino via socket
     private void enviarAPar(InfoNodo destino, MensajeNodo msg) {
-        try (Socket s = new Socket(destino.obtenerHost(), destino.obtenerPuertoPeer());
-             ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream())) {
-            out.writeObject(msg);
-            out.flush();
+        try (Socket s = new Socket()) {
+            s.connect(new java.net.InetSocketAddress(destino.obtenerHost(), destino.obtenerPuertoPeer()), 1500);
+            try (ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream())) {
+                out.writeObject(msg);
+                out.flush();
+            }
         } catch (Exception e) {
             System.err.println("[RA][Nodo-" + miId + "] No se pudo enviar " + msg.obtenerTipo()
                     + " a " + destino + ": " + e.getMessage());
