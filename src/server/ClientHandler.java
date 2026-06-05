@@ -198,6 +198,10 @@ public class ClientHandler implements Runnable {
             case GET_PRECIOS_CATALOGO:
                 return new Response(true, server.getPreciosCatalogo((ArrayList<Juego>) p[0], (Pais) p[1]));
 
+            case OBTENER_METRICAS_COORDINACION:
+                long count = (ra != null) ? ra.obtenerContadorMensajesCoordinacion() : 0;
+                return new Response(true, count);
+
             default:
                 return new Response("Comando desconocido: " + request.getCommand());
         }

@@ -24,7 +24,8 @@ public class Request implements Serializable {
         RECARGAR_SALDO,
         OBTENER_JUEGOS_EN_COMUN_LOCAL,
         OBTENER_BIBLIOTECA,
-        GET_PRECIOS_CATALOGO
+        GET_PRECIOS_CATALOGO,
+        OBTENER_METRICAS_COORDINACION
     }
 
     private Command command;

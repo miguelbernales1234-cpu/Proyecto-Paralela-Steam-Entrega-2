@@ -32,6 +32,9 @@ public class RicartAgrawala {
     private final Queue<InfoNodo> respuestasDiferidas = new LinkedList<>();
     private final Object bloqueoDiferidos = new Object();
 
+    // Nodos actualmente marcados como caídos
+    private final java.util.Set<Integer> nodosFallidos = java.util.concurrent.ConcurrentHashMap.newKeySet();
+
     // Estado de la solicitud actual
     private volatile boolean deseandoSC    = false; // ¿Quiero entrar a la SC?
     private volatile boolean enSC          = false; // ¿Estoy en la SC?
@@ -62,16 +65,24 @@ public class RicartAgrawala {
         System.out.println("[RA][Nodo-" + miId + "] SOLICITANDO SC (lamport=" + miTimestamp + ")");
 
         List<InfoNodo> pares = registro.obtenerPares(miId);
-        // Enviar SOLICITUD a todos los pares
+        int nodosAEsperar = 0;
+
+        // Enviar SOLICITUD a todos los pares activos
         for (InfoNodo par : pares) {
+            int idPar = par.obtenerIdNodo();
+            if (nodosFallidos.contains(idPar)) {
+                System.out.println("[RA][Nodo-" + miId + "] Ignorando Nodo-" + idPar + " en solicitud porque está marcado como caído.");
+                continue;
+            }
+            nodosAEsperar++;
             MensajeNodo req = new MensajeNodo(
                     MensajeNodo.Tipo.RA_SOLICITUD, miId, miTimestamp, miTimestamp);
             enviarAPar(par, req);
             contadorMensajesCoordinacion++;
         }
 
-        // Esperar RESPUESTA de todos los pares
-        semaforoRespuestas.acquire(pares.size());
+        // Esperar RESPUESTA de todos los pares activos
+        semaforoRespuestas.acquire(nodosAEsperar);
         enSC = true;
         System.out.println("[RA][Nodo-" + miId + "] ENTRANDO A SC (lamport=" + reloj.obtenerTiempo() + ")");
     }
@@ -155,6 +166,7 @@ public class RicartAgrawala {
     public void alDetectarFalloDePar(int idNodoFallido) {
         System.out.println("[RA][Nodo-" + miId + "] Par Nodo-" + idNodoFallido
                 + " cayó, liberando espera de RESPUESTA");
+        nodosFallidos.add(idNodoFallido);
         if (deseandoSC) {
             semaforoRespuestas.release(); // Contar el nodo caído como si hubiera respondido
         }
@@ -162,6 +174,15 @@ public class RicartAgrawala {
         synchronized (bloqueoDiferidos) {
             respuestasDiferidas.removeIf(n -> n.obtenerIdNodo() == idNodoFallido);
         }
+    }
+
+    /**
+     * Llamado cuando un par se recupera.
+     */
+    public void alRecuperarPar(int idNodoRecuperado) {
+        System.out.println("[RA][Nodo-" + miId + "] Par Nodo-" + idNodoRecuperado
+                + " se ha recuperado, removiendo de lista de caídos");
+        nodosFallidos.remove(idNodoRecuperado);
     }
 
     // Este metodo tiene como objetivo retornar el contador total de mensajes de coordinacion generados

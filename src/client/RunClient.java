@@ -11,7 +11,7 @@ public class RunClient {
         } else {
             Scanner sc = new Scanner(System.in);
             System.out.println(" Puede ingresar varios servidores separados por coma.");
-            System.out.print(" Ingrese IPs/Puertos (Enter = localhost:1009,localhost:1010): ");
+            System.out.print(" Ingrese IPs/Puertos o presione Enter para conectarse a ambos puertos por defecto (localhost:1009, localhost:1010): ");
             String input = sc.nextLine().trim();
             if (input.isEmpty()) {
                 hosts = new String[] { "localhost:1009", "localhost:1010" };

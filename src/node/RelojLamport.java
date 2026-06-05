@@ -9,11 +9,19 @@ public class RelojLamport {
 
     private long tiempo;
     private final int idNodo;
+    private boolean silencioso = false;
 
     // Este metodo tiene como objetivo inicializar el reloj de Lamport para un nodo especifico
     public RelojLamport(int idNodo) {
         this.tiempo = 0;
         this.idNodo = idNodo;
+    }
+
+    // Constructor para inicializar el reloj con opción de silenciar los logs
+    public RelojLamport(int idNodo, boolean silencioso) {
+        this.tiempo = 0;
+        this.idNodo = idNodo;
+        this.silencioso = silencioso;
     }
 
     /**
@@ -43,6 +51,8 @@ public class RelojLamport {
 
     // Este metodo tiene como objetivo registrar en consola el estado del reloj con el evento ocurrido
     private void registrar(String evento) {
-        System.out.printf("[LAMPORT][Nodo-%d] t=%d  evento=%s%n", idNodo, tiempo, evento);
+        if (!silencioso) {
+            System.out.printf("[LAMPORT][Nodo-%d] t=%d  evento=%s%n", idNodo, tiempo, evento);
+        }
     }
 }

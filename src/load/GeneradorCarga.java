@@ -35,6 +35,9 @@ public class GeneradorCarga {
     private final int cantidadHilos;
     private final long duracionMs;
     private final ColectorMetricas metricas;
+    
+    // Reloj de Lamport local silencioso para evitar inundar la consola con miles de logs
+    private final node.RelojLamport relojLocal = new node.RelojLamport(888, true);
 
     // IDs de juegos populares de Steam para usar en las pruebas
     private static final int[] GAME_IDS = {730, 578080, 1172470, 271590, 892970, 1091500};
@@ -102,6 +105,41 @@ public class GeneradorCarga {
 
         // Mostrar reporte final
         metricas.imprimirReporte();
+        
+        // Consultar métricas de coordinación distribuida de todos los nodos
+        System.out.println("─".repeat(60));
+        System.out.println("  MÉTRICAS DE COORDINACIÓN DISTRIBUIDA (RICART-AGRAWALA)");
+        System.out.println("─".repeat(60));
+        long totalMensajesCoordinacion = 0;
+        try {
+            node.RegistroNodos registro = new node.RegistroNodos("nodes.txt");
+            for (node.InfoNodo n : registro.obtenerTodosLosNodos()) {
+                try (Socket s = new Socket(n.obtenerHost(), n.obtenerPuertoCliente());
+                     ObjectOutputStream out = new ObjectOutputStream(s.getOutputStream());
+                     ObjectInputStream in = new ObjectInputStream(s.getInputStream())) {
+                    
+                    s.setSoTimeout(2000);
+                    out.writeObject(new Request(Request.Command.OBTENER_METRICAS_COORDINACION));
+                    out.flush();
+                    
+                    Response res = (Response) in.readObject();
+                    if (res.isSuccess()) {
+                        long count = (Long) res.getResult();
+                        totalMensajesCoordinacion += count;
+                        System.out.printf("  [Coordinación] Nodo-%d (%s:%d): %d mensajes (Req/Rep SC)%n",
+                                n.obtenerIdNodo(), n.obtenerHost(), n.obtenerPuertoCliente(), count);
+                    }
+                } catch (Exception e) {
+                    System.out.printf("  [Coordinación] Nodo-%d (%s:%d): NO DISPONIBLE (Nodo caído)%n",
+                            n.obtenerIdNodo(), n.obtenerHost(), n.obtenerPuertoCliente());
+                }
+            }
+            System.out.println("─".repeat(60));
+            System.out.printf("  Total Mensajes de Coordinación (Ricart-Agrawala): %d%n", totalMensajesCoordinacion);
+            System.out.println("═".repeat(60));
+        } catch (Exception e) {
+            System.out.println("  [Error] No se pudo leer la configuración de nodos para cargar métricas: " + e.getMessage());
+        }
     }
 
     // Este metodo tiene como objetivo ejecutar el loop de peticiones de un hilo cliente durante la prueba
@@ -167,10 +205,18 @@ public class GeneradorCarga {
              ObjectInputStream  in  = new ObjectInputStream(socket.getInputStream())) {
 
             socket.setSoTimeout(5000); // Timeout de 5 segundos
+            
+            // Asignar el tiempo de Lamport del generador
+            req.setLamportTime(relojLocal.tick());
+            
             out.writeObject(req);
             out.flush();
 
             Response response = (Response) in.readObject();
+            
+            // Actualizar el reloj lógico con el retornado por el servidor
+            relojLocal.update(response.getLamportTime());
+            
             long latencia = System.currentTimeMillis() - inicio;
 
             if (response.isSuccess()) {

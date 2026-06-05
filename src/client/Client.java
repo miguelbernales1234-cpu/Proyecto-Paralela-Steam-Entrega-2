@@ -21,6 +21,9 @@ public class Client {
     private ObjectOutputStream out;
     private ObjectInputStream  in;
     private Usuario loggedInUser = null;
+    
+    // Reloj de Lamport local al cliente (ID 999 para identificarlo en logs)
+    private node.RelojLamport relojLocal = new node.RelojLamport(999);
 
     // Este metodo tiene como objetivo establecer la conexion con el nodo activo en el cluster
     public boolean connectToActiveNode() {
@@ -54,10 +57,20 @@ public class Client {
                 if (socket == null || socket.isClosed()) {
                     if (!connectToActiveNode()) throw new Exception("Todos los servidores del clúster están caídos.");
                 }
+                
+                // Asignar tiempo del reloj lógico local antes de enviar la petición
+                request.setLamportTime(relojLocal.tick());
+                
                 out.writeObject(request); 
                 out.flush();
                 out.reset();
-                return (Response) in.readObject(); 
+                
+                Response response = (Response) in.readObject();
+                
+                // Actualizar reloj lógico local al recibir la respuesta del servidor
+                relojLocal.update(response.getLamportTime());
+                
+                return response; 
             } catch (Exception e) {
                 System.out.println(ConsoleUtils.RED + " [x] Fallo en el nodo actual detectado. Iniciando Failover..." + ConsoleUtils.RESET);
                 if (socket != null && !socket.isClosed()) socket.close();
@@ -270,16 +283,18 @@ public class Client {
             }
             Juego juego = (Juego) response.getResult();
             if (juego != null) {
-                String tipo = juego.getTipo() != null ? juego.getTipo() : "game";
-                System.out.println(ConsoleUtils.GREEN + "\n ¡Juego encontrado!" + ConsoleUtils.RESET);
-                System.out.println(ConsoleUtils.CYAN + "   Nombre : " + ConsoleUtils.RESET + juego.getNombre());
-                System.out.println(ConsoleUtils.CYAN + "   App ID : " + ConsoleUtils.RESET + juego.getId());
-                System.out.println(ConsoleUtils.CYAN + "   Tipo   : " + ConsoleUtils.RESET + tipo);
+                System.out.println(ConsoleUtils.GREEN + "\n [✔] ¡Juego encontrado!" + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(63) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
+                System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.RESET + "  %-12s: %-46.46s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
+                        "Nombre", juego.getNombre());
+                System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.RESET + "  %-12s: %-46.46s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
+                        "App ID", String.valueOf(juego.getId()));
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(63) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
             } else {
-                System.out.println(ConsoleUtils.RED + "\n No se encontró el juego: " + nombre + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.RED + "\n [x] No se encontró el juego: " + nombre + ConsoleUtils.RESET);
             }
         } catch (Exception e) {
-            System.out.println(ConsoleUtils.RED + "\n Error al buscar juego: " + e.getMessage() + ConsoleUtils.RESET);
+            System.out.println(ConsoleUtils.RED + "\n [x] Error al buscar juego: " + e.getMessage() + ConsoleUtils.RESET);
         }
     }
 
@@ -327,15 +342,21 @@ public class Client {
             ArrayList<Juego> comunes = (ArrayList<Juego>) response.getResult();
 
             if (comunes.isEmpty()) {
-                System.out.println(ConsoleUtils.YELLOW + "\n No se encontraron juegos en común." + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.YELLOW + "\n [!] No se encontraron juegos en común." + ConsoleUtils.RESET);
                 System.out.println(ConsoleUtils.GRAY + " Verifica que los perfiles sean públicos y que la API Key sea válida." + ConsoleUtils.RESET);
             } else {
-                System.out.println(ConsoleUtils.GREEN + "\n ¡Encontrados " + comunes.size() + " juego(s) que todos poseen!" + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.GREEN + "\n [✔] ¡Encontrados " + comunes.size() + " juego(s) que todos poseen!" + ConsoleUtils.RESET);
                 System.out.println(ConsoleUtils.GRAY + " Estos son los juegos que pueden jugar juntos:" + ConsoleUtils.RESET);
                 System.out.println();
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(60) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
+                System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.BOLD + " %-10s | %-45s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET, "App ID", "Nombre");
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.HORIZONTAL.repeat(60) + ConsoleUtils.VERTICAL + ConsoleUtils.RESET);
                 for (int i = 0; i < comunes.size(); i++) {
-                    System.out.println(ConsoleUtils.CYAN + " " + (i + 1) + ".- " + ConsoleUtils.RESET + comunes.get(i).getNombre() + ConsoleUtils.GRAY + " (App ID: " + comunes.get(i).getId() + ")" + ConsoleUtils.RESET);
+                    Juego j = comunes.get(i);
+                    System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.RESET + " %-10d | %-45.45s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
+                            j.getId(), j.getNombre());
                 }
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(60) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
             }
             System.out.println(ConsoleUtils.GRAY + "\n Tiempo de consulta: " + (endTime - startTime) + "ms (consultas paralelas)" + ConsoleUtils.RESET);
         } catch (Exception e) {
@@ -533,12 +554,15 @@ public class Client {
             if (biblioteca.isEmpty()) {
                 System.out.println(ConsoleUtils.YELLOW + " No posees juegos en tu biblioteca. ¡Ve a la tienda a comprar algunos!" + ConsoleUtils.RESET);
             } else {
-                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(63) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(60) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
+                System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.BOLD + " %-10s | %-45s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET, "App ID", "Nombre");
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.HORIZONTAL.repeat(60) + ConsoleUtils.VERTICAL + ConsoleUtils.RESET);
                 for (int i = 0; i < biblioteca.size(); i++) {
-                    System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.RESET + "  %-3d.- %-35s (App ID: %-8d) " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
-                            (i + 1), biblioteca.get(i).getNombre(), biblioteca.get(i).getId());
+                    Juego j = biblioteca.get(i);
+                    System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.RESET + " %-10d | %-45.45s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
+                            j.getId(), j.getNombre());
                 }
-                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(63) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(60) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
             }
         } catch (Exception e) {
             System.out.println(ConsoleUtils.RED + " Error al obtener biblioteca: " + e.getMessage() + ConsoleUtils.RESET);
@@ -630,7 +654,7 @@ public class Client {
         System.out.println(ConsoleUtils.GRAY + " Encuentra qué juegos tienen en común tú y tus amigos usando hilos paralelos de base de datos." + ConsoleUtils.RESET);
         System.out.println();
         try {
-            System.out.print(ConsoleUtils.BOLD + " Ingrese cantidad de amigos a buscar: " + ConsoleUtils.RESET);
+            System.out.print(ConsoleUtils.BOLD + " Ingrese cantidad de amigos a comparar: " + ConsoleUtils.RESET);
             int cantidad = Integer.parseInt(sc.nextLine());
             if (cantidad < 1) {
                 System.out.println(ConsoleUtils.RED + " Debe ingresar al menos 1 amigo." + ConsoleUtils.RESET);
@@ -659,13 +683,19 @@ public class Client {
             @SuppressWarnings("unchecked")
             ArrayList<Juego> comunes = (ArrayList<Juego>) response.getResult();
             if (comunes.isEmpty()) {
-                System.out.println(ConsoleUtils.YELLOW + "\n No se encontraron juegos en común localmente." + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.YELLOW + "\n [!] No se encontraron juegos en común localmente." + ConsoleUtils.RESET);
             } else {
-                System.out.println(ConsoleUtils.GREEN + "\n ¡Encontrados " + comunes.size() + " juego(s) en común!" + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.GREEN + "\n [✔] ¡Encontrados " + comunes.size() + " juego(s) en común!" + ConsoleUtils.RESET);
                 System.out.println();
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.TOP_LEFT + ConsoleUtils.HORIZONTAL.repeat(60) + ConsoleUtils.TOP_RIGHT + ConsoleUtils.RESET);
+                System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.BOLD + " %-10s | %-45s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET, "App ID", "Nombre");
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.HORIZONTAL.repeat(60) + ConsoleUtils.VERTICAL + ConsoleUtils.RESET);
                 for (int i = 0; i < comunes.size(); i++) {
-                    System.out.println(ConsoleUtils.CYAN + " " + (i + 1) + ".- " + ConsoleUtils.RESET + comunes.get(i).getNombre() + ConsoleUtils.GRAY + " (App ID: " + comunes.get(i).getId() + ")" + ConsoleUtils.RESET);
+                    Juego j = comunes.get(i);
+                    System.out.printf(ConsoleUtils.CYAN + " " + ConsoleUtils.VERTICAL + ConsoleUtils.RESET + " %-10d | %-45.45s " + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n" + ConsoleUtils.RESET,
+                            j.getId(), j.getNombre());
                 }
+                System.out.println(ConsoleUtils.CYAN + " " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(60) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
             }
             System.out.println(ConsoleUtils.GRAY + "\n Tiempo de consulta en BD (Paralela): " + (endTime - startTime) + "ms" + ConsoleUtils.RESET);
         } catch (NumberFormatException e) {

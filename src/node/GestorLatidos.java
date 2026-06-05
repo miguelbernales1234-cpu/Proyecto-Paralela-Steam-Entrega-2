@@ -111,6 +111,7 @@ public class GestorLatidos {
                     nodosFallidos.put(idPar, false);
                     System.out.println("[HB][Nodo-" + miId + "] RECUPERACION: Nodo-" + idPar
                             + " volvió a responder (lamport=" + reloj.obtenerTiempo() + ")");
+                    ra.alRecuperarPar(idPar);
                 }
             }
         }
