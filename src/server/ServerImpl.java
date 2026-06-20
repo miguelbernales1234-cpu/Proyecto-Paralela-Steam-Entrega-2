@@ -48,10 +48,21 @@ public class ServerImpl implements InterfazDeServer {
     private static final String DB_PASS = System.getenv("DB_PASS") != null ? System.getenv("DB_PASS") : "";
     private static final String DB_URL  = "jdbc:mysql://" + DB_HOST + ":" + DB_PORT + "/" + DB_NAME;
 
+    // Valor replicado globalmente mediante Consenso Bizantino
+    private volatile String promocionGlobal = "NINGUNA";
+
     // Este metodo tiene como objetivo inicializar el servidor y conectarlo a la
     // base de datos
     public ServerImpl() {
         conectarBD();
+    }
+
+    public synchronized void setPromocionGlobal(String promo) {
+        this.promocionGlobal = promo;
+    }
+
+    public String getPromocionGlobal() {
+        return promocionGlobal;
     }
 
     @Override

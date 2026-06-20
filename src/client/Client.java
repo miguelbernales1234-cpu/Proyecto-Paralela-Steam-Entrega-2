@@ -104,6 +104,7 @@ public class Client {
                     System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[2]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Registrar Cuenta Nueva");
                     System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[3]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Ver catálogo de juegos");
                     System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[4]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Buscar juego por nombre");
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[5]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Promoción Global (Consenso BFT)");
                     System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[0]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Salir");
                     System.out.println(" " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(48) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
 
@@ -126,6 +127,7 @@ public class Client {
                         case 2: registrarUsuario(sc);           break;
                         case 3: listarJuegos();                 break;
                         case 4: buscarJuego(sc);                break;
+                        case 5: menuPromocionGlobal(sc);        break;
                         case 0:
                             System.out.println(ConsoleUtils.GREEN + "Cerrando cliente. ¡Hasta luego!" + ConsoleUtils.RESET);
                             break;
@@ -189,6 +191,35 @@ public class Client {
         } catch (Exception e) {
             System.err.println("Error al iniciar cliente: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    // Este metodo gestiona el menú de Promoción Global
+    private void menuPromocionGlobal(Scanner sc) {
+        ConsoleUtils.printHeader("Promoción Global (Consenso BFT)");
+        try {
+            Response responseActual = sendRequest(new Request(Request.Command.GET_PROMO_GLOBAL));
+            System.out.println(ConsoleUtils.CYAN + " Promoción Actual (Local al nodo conectado): " + ConsoleUtils.YELLOW + responseActual.getResult() + ConsoleUtils.RESET);
+            System.out.println();
+            
+            System.out.print(ConsoleUtils.BOLD + " ¿Desea proponer una nueva promoción global? (S/N): " + ConsoleUtils.RESET);
+            String confirmStr = sc.nextLine().trim();
+            if (!confirmStr.equalsIgnoreCase("S")) {
+                return;
+            }
+
+            System.out.print(ConsoleUtils.BOLD + " Ingrese el nuevo código o texto de promoción: " + ConsoleUtils.RESET);
+            String nuevaPromo = sc.nextLine().trim();
+
+            Response response = sendRequest(new Request(Request.Command.SET_PROMO_GLOBAL, nuevaPromo));
+            if (response.isSuccess()) {
+                System.out.println(ConsoleUtils.GREEN + "\n [✔] " + response.getResult() + ConsoleUtils.RESET);
+                System.out.println(ConsoleUtils.GRAY + " (Espera unos segundos para que se alcance el quórum en los demás nodos)" + ConsoleUtils.RESET);
+            } else {
+                System.out.println(ConsoleUtils.RED + "\n [x] Error: " + response.getErrorMessage() + ConsoleUtils.RESET);
+            }
+        } catch (Exception e) {
+            System.out.println(ConsoleUtils.RED + " Error de comunicación: " + e.getMessage() + ConsoleUtils.RESET);
         }
     }
 

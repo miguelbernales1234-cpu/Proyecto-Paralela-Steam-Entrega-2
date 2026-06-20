@@ -37,5 +37,7 @@ public interface InterfazDeServer {
     public ArrayList<Juego> obtenerJuegosEnComunLocal(ArrayList<String> usernames);
     public ArrayList<Juego> obtenerBiblioteca(int userId) throws Exception;
     public ArrayList<PrecioRegional> getPreciosCatalogo(ArrayList<Juego> juegos, Pais pais);
+    public void setPromocionGlobal(String promo);
+    public String getPromocionGlobal();
 }
 

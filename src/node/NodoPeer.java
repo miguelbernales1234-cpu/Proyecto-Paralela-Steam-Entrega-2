@@ -33,6 +33,7 @@ public class NodoPeer {
     private final EleccionBully bully;
     private final RicartAgrawala ra;
     private final GestorLatidos hbManager;
+    private final ConsensoBizantino bft;
     private final EscuchadorNodos peerListener;
 
     // Este metodo tiene como objetivo construir el nodo distribuido con todos sus modulos de coordinacion
@@ -61,8 +62,11 @@ public class NodoPeer {
         // 6. Heartbeats: detecta caídas y dispara Bully
         this.hbManager = new GestorLatidos(idNodo, registro, reloj, bully, ra);
 
+        // Módulo BFT: Consenso Bizantino para replicación de valor global
+        this.bft = new ConsensoBizantino(idNodo, registro, reloj, bully, server);
+
         // 7. Listener P2P: recibe y enruta mensajes de otros nodos
-        this.peerListener = new EscuchadorNodos(idNodo, puertoPeer, bully, ra, hbManager, registro);
+        this.peerListener = new EscuchadorNodos(idNodo, puertoPeer, bully, ra, hbManager, registro, bft);
     }
 
     /**
@@ -102,8 +106,8 @@ public class NodoPeer {
         try (ServerSocket ss = new ServerSocket(puertoCliente)) {
             while (true) {
                 Socket socketCliente = ss.accept();
-                // Pasar la referencia de ra y reloj al ClientHandler para RA en operaciones críticas
-                ClientHandler handler = new ClientHandler(socketCliente, server, ra, reloj);
+                // Pasar la referencia de ra, reloj y bft al ClientHandler
+                ClientHandler handler = new ClientHandler(socketCliente, server, ra, reloj, bft);
                 Thread t = new Thread(handler, "ClientHandler-" + idNodo);
                 t.setDaemon(true);
                 t.start();

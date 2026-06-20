@@ -16,7 +16,9 @@ public class MensajeNodo implements Serializable {
         COORDINADOR,    // Anuncio del nuevo coordinador
         RA_SOLICITUD,   // Solicitud de acceso a sección crítica (Ricart-Agrawala)
         RA_RESPUESTA,   // Respuesta de permiso (Ricart-Agrawala)
-        SINC_ESTADO     // Sincronización de estado al reintegrarse un nodo
+        SINC_ESTADO,    // Sincronización de estado al reintegrarse un nodo
+        BFT_PROPOSE,    // Proposición de un valor para consenso bizantino
+        BFT_VOTE        // Voto a favor de un valor propuesto en consenso bizantino
     }
 
     private final Tipo tipo;

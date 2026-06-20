@@ -17,17 +17,19 @@ public class EscuchadorNodos implements Runnable {
     private final RicartAgrawala ra;
     private final GestorLatidos hbManager;
     private final RegistroNodos registro;
+    private final ConsensoBizantino bft;
     private volatile boolean activo = true;
 
     // Este metodo tiene como objetivo inicializar el listener P2P con todos los modulos de coordinacion
     public EscuchadorNodos(int miId, int puertoPeer, EleccionBully bully,
-                           RicartAgrawala ra, GestorLatidos hbManager, RegistroNodos registro) {
+                           RicartAgrawala ra, GestorLatidos hbManager, RegistroNodos registro, ConsensoBizantino bft) {
         this.miId      = miId;
         this.puertoPeer = puertoPeer;
         this.bully     = bully;
         this.ra        = ra;
         this.hbManager = hbManager;
         this.registro  = registro;
+        this.bft       = bft;
     }
 
     @Override
@@ -105,6 +107,18 @@ public class EscuchadorNodos implements Runnable {
 
             case SINC_ESTADO:
                 System.out.println("[EscuchadorNodos][Nodo-" + miId + "] SINC_ESTADO recibido de Nodo-" + idEmisor);
+                break;
+
+            case BFT_PROPOSE:
+                if (msg.obtenerCargaUtil() instanceof String) {
+                    bft.alRecibirPropuesta(idEmisor, (String) msg.obtenerCargaUtil());
+                }
+                break;
+
+            case BFT_VOTE:
+                if (msg.obtenerCargaUtil() instanceof String) {
+                    bft.alRecibirVoto(idEmisor, (String) msg.obtenerCargaUtil());
+                }
                 break;
 
             default:

@@ -17,6 +17,7 @@ import common.Response;
 import common.Usuario;
 import node.RelojLamport;
 import node.RicartAgrawala;
+import node.ConsensoBizantino;
 
 public class ClientHandler implements Runnable {
 
@@ -24,18 +25,20 @@ public class ClientHandler implements Runnable {
     private final ServerImpl server;
     private final RicartAgrawala ra;   // Null si se usa sin modo distribuido
     private final RelojLamport clock;  // Null si se usa sin modo distribuido
+    private final ConsensoBizantino bft; // Null si se usa sin modo distribuido
 
     // Este metodo tiene como objetivo inicializar el manejador en modo distribuido (con RA y reloj de Lamport)
-    public ClientHandler(Socket clientSocket, ServerImpl server, RicartAgrawala ra, RelojLamport clock) {
+    public ClientHandler(Socket clientSocket, ServerImpl server, RicartAgrawala ra, RelojLamport clock, ConsensoBizantino bft) {
         this.clientSocket = clientSocket;
         this.server       = server;
         this.ra           = ra;
         this.clock        = clock;
+        this.bft          = bft;
     }
 
     // Este metodo tiene como objetivo inicializar el manejador en modo simple (sin coordinacion distribuida)
     public ClientHandler(Socket clientSocket, ServerImpl server) {
-        this(clientSocket, server, null, null);
+        this(clientSocket, server, null, null, null);
     }
 
     @Override
@@ -201,6 +204,18 @@ public class ClientHandler implements Runnable {
             case OBTENER_METRICAS_COORDINACION:
                 long count = (ra != null) ? ra.obtenerContadorMensajesCoordinacion() : 0;
                 return new Response(true, count);
+
+            case SET_PROMO_GLOBAL:
+                if (bft != null) {
+                    bft.iniciarConsenso((String) p[0]);
+                    return new Response(true, "Proposición de consenso bizantino iniciada para la promoción: " + p[0]);
+                } else {
+                    server.setPromocionGlobal((String) p[0]);
+                    return new Response(true, "Promoción global actualizada localmente (modo no distribuido).");
+                }
+
+            case GET_PROMO_GLOBAL:
+                return new Response(true, server.getPromocionGlobal());
 
             default:
                 return new Response("Comando desconocido: " + request.getCommand());
