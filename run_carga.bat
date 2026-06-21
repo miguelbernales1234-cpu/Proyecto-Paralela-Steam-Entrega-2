@@ -19,7 +19,7 @@ if "%DURATION%"=="" set DURATION=60
 if "%THREADS%"=="" set THREADS=50
 
 echo [LoadGen] Iniciando prueba de carga contra %HOST%:%PORT%
-echo [LoadGen] Hilos: %THREADS% | Duracion: %DURATION% segundos
+echo [LoadGen] Hilos: %THREADS% ^| Duracion: %DURATION% segundos
 echo.
 
 java -cp "%CLASSPATH%" load.EjecutarGeneradorCarga %HOST% %PORT% %DURATION% %THREADS%
