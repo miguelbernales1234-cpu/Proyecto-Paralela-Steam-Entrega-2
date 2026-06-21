@@ -47,9 +47,10 @@ En este proyecto se optó por utilizar relojes de Lamport debido a que permiten 
 
 Por ejemplo, al recibir un mensaje P2P de otro nodo, el servidor sincroniza su reloj local de acuerdo a la regla de Lamport (tiempo = max(local, recibido) + 1):
 
+```java
 long lamportRecibido = msg.obtenerTiempoLamport();
 nodo.getReloj().actualizar(lamportRecibido);
-
+```
 
 Esta decisión fue adecuada para el proyecto, ya que los algoritmos implementados, como Ricart-Agrawala y la coordinación entre nodos, requieren comparar el orden de solicitudes y respuestas distribuidas, pero no necesariamente mantener el historial causal completo que entregan los relojes vectoriales. Por ello, Lamport permitió reducir la complejidad de implementación y, al mismo tiempo, mantener trazabilidad y verificabilidad en los logs del sistema.
   
@@ -63,14 +64,14 @@ La transparencia de acceso se logra porque los clientes interactúan con el sist
 
 Desde la perspectiva del cliente, la conexión y el intercambio de mensajes se abstraen mediante flujos de objetos serializados (ObjectOutputStream y ObjectInputStream):
 
+```java
 socket = new Socket(host, puerto);
 out    = new ObjectOutputStream(socket.getOutputStream());
 in     = new ObjectInputStream(socket.getInputStream());
 
-
 out.writeObject(new Request(TipoRequest.COMPRAR_JUEGO, parametros));
 Response res = (Response) in.readObject();
-
+```
 
 De esta forma, la invocación a operaciones como búsqueda de juegos, consulta de precios regionales o compra de juegos se mantiene uniforme, ya que todas siguen la misma estructura de petición y respuesta. Esto permite que el acceso a las funciones del sistema sea consistente y homogéneo, ocultando parcialmente la complejidad interna de la lógica distribuida y de los algoritmos de coordinación implementados entre nodos.
 
@@ -85,7 +86,7 @@ La transparencia de ubicación se cumple de manera parcial, ya que las funciones
 A continuación, se presenta el diagrama físico de red que modela los flujos de comunicación descritos, ilustrando los protocolos, puertos de interconexión y límites de la red local frente a la red externa.
 
 
-![Diagrama Físico del Sistema Distribuido](Informe/Images/modelo_fisico.png)
+![Diagrama Físico del Sistema Distribuido](Images/modelo_fisico.png)
 
 
 5.1.1 Identificación de Nodos
@@ -117,7 +118,7 @@ Por otra parte, la capa de coordinación distribuida permite que los nodos se co
 
 Finalmente, todos los nodos acceden a una base de datos MySQL compartida, lo que centraliza la persistencia de la información. De esta manera, la arquitectura combina comunicación cliente-servidor para la recepción de solicitudes, comunicación Peer-to-Peer para la coordinación distribuida y una capa de persistencia centralizada para el almacenamiento de datos. Esta organización permite que el sistema atienda múltiples clientes de manera concurrente, mantenga consistencia en operaciones críticas y tolere fallos básicos dentro del clúster.
 
-![Diagrama Arquitectónico del Sistema Distribuido](Informe/Images/modelo_arqui.png)
+![Diagrama Arquitectónico del Sistema Distribuido](Images/modelo_arqui.png)
 
 5.2.1 Capa de atención a clientes
 La capa de atención a clientes corresponde al punto de entrada de las solicitudes externas al sistema. En esta capa se encuentra el componente ClientHandler, encargado de recibir las conexiones provenientes de clientes externos o del generador de carga mediante comunicación TCP.
@@ -183,14 +184,14 @@ Esta función crítica ilustra la aplicación práctica del ordenamiento causal 
 
 Para lograrlo, cuando el ClientHandler recibe una petición de COMPRAR_JUEGO, el servidor adjunta el valor actual del Reloj de Lamport y solicita acceso a la Sección Crítica mediante el algoritmo de Ricart-Agrawala. El nodo transmite a todos sus pares un mensaje RA_PETICION y entra en estado de espera. Una vez que todos los demás nodos evalúan la marca de tiempo lógica (cediendo el turno al de menor timestamp) y responden con RA_RESPUESTA, el nodo original obtiene el acceso exclusivo. En ese momento, ejecuta la transacción de lectura y escritura contra la Base de Datos MySQL, descuenta el saldo, asigna el juego, y finalmente libera el recurso enviando el respectivo aviso a los demás nodos, manteniendo así una estricta coherencia e integridad transaccional que obedece al orden de eventos de Lamport
 
-![Diagrama de Secuencia: "Compra de Juegos (Transacción con Exclusión Mutua)"](Informe/Images/compra_juego.png)
+![Diagrama de Secuencia: "Compra de Juegos (Transacción con Exclusión Mutua)"](Images/compra_juego.png)
 
 5.3.2 Diagrama de secuencia para “Comparar precios en múltiples países”
 Esta función tiene como objetivo obtener el precio de un juego específico en múltiples países de forma simultánea. El cliente envía una solicitud al servidor a través del ClientHandler, que la delega al ServerImpl. Este crea un pool de hasta 20 hilos paralelos, asignando un hilo por cada país solicitado. Cada hilo consulta de forma independiente la Steam API para obtener el precio del juego en la moneda local del país correspondiente, y luego convierte ese valor a USD usando el método convertirPrecioAUSD. Una vez que todos los hilos han completado su consulta, el servidor recopila los resultados en una lista y la retorna al cliente.
 La concurrencia en esta función es importante para su eficiencia, ya que en lugar de consultar los países uno por uno de forma secuencial, todas las solicitudes a la Steam API se realizan en paralelo, reduciendo significativamente el tiempo total de respuesta. Es relevante cuando se consultan muchos países a la vez, ya que el cuello de botella principal es la latencia de red hacia la API externa.
 
 
-![Diagrama de Secuencia: "Comparar precios en múltiples países"](Informe/Images/comparar_paises.png)
+![Diagrama de Secuencia: "Comparar precios en múltiples países"](Images/comparar_paises.png)
 
 6.  Análisis fundamental
 
@@ -372,9 +373,9 @@ Mensajes de Coordinación: La exclusión mutua distribuida generó un intenso tr
 Recuperación en Falla Inducida: Tras apagar el Nodo-3 de manera deliberada (marcado como “NO DISPONIBLE” en la tabla), el sistema reconoció el fallo pasados los latidos máximos configurados (6 segundos). Al detectar la caída, el mecanismo alDetectarFalloDePar liberó los bloqueos del nodo inactivo, permitiendo al sistema continuar operando. La tasa de error del 33.13% se explica por las peticiones que estaban siendo atendidas por dicho nodo al momento de su caída, o aquellas que superaron su timeout durante los segundos de detección, demostrando una recuperación exitosa.
 
 
-![Tabla de Reporte Prueba de Carga](/Informe/Images/tabla_prueba_carga.png)
+![Tabla de Reporte Prueba de Carga](Images/tabla_prueba_carga.png)
 
-![Tabla de Métricas de Coordinación distribuida (Ricart-Agrawala)](/Informe/Images/tabla_ricart_walala.png)
+![Tabla de Métricas de Coordinación distribuida (Ricart-Agrawala)](Images/tabla_ricart_walala.png)
 
 
 7.  Conclusión
@@ -386,5 +387,5 @@ Finalmente, el análisis fundamental de la plataforma subraya la importancia de 
 Anexos
 Anexo 1: Diagrama de Entidad-Relación de la base de datos
 
-![Diagrama de Entidad-Relación: "Base de datos Steam"](Informe/Images/diagrama_bd.png)
+![Diagrama de Entidad-Relación: "Base de datos Steam"](Images/diagrama_bd.png)
 
