@@ -105,6 +105,7 @@ public class Client {
                     System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[3]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Ver catálogo de juegos");
                     System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[4]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Buscar juego por nombre");
                     System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[5]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Promoción Global (Consenso BFT)");
+                    System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[6]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Comparar precios por regiones");
                     System.out.printf(" " + ConsoleUtils.VERTICAL + "  " + ConsoleUtils.YELLOW + "[0]" + ConsoleUtils.RESET + " %-42s" + ConsoleUtils.CYAN + ConsoleUtils.VERTICAL + "\n", "Salir");
                     System.out.println(" " + ConsoleUtils.BOTTOM_LEFT + ConsoleUtils.HORIZONTAL.repeat(48) + ConsoleUtils.BOTTOM_RIGHT + ConsoleUtils.RESET);
 
@@ -128,6 +129,7 @@ public class Client {
                         case 3: listarJuegos();                 break;
                         case 4: buscarJuego(sc);                break;
                         case 5: menuPromocionGlobal(sc);        break;
+                        case 6: compararPrecioEnRegiones(sc);   break;
                         case 0:
                             System.out.println(ConsoleUtils.GREEN + "Cerrando cliente. ¡Hasta luego!" + ConsoleUtils.RESET);
                             break;
