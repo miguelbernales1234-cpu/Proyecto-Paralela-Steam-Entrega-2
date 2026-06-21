@@ -57,13 +57,17 @@ Puedes obtener tu propia API Key en: https://steamcommunity.com/dev/apikey
 
 ---
 
-## 🚀 Ejecución del Proyecto
+## 🚀 Ejecución del Proyecto (Entrega 2 - Clúster Distribuido)
 
-1. Clona este repositorio en tu máquina local (si no lo has hecho aún):
-   ```bash
-   git clone https://github.com/WDBronce1/Proyecto-Paralela-Steam.git
-   ```
+1. Clona este repositorio en tu máquina local (si no lo has hecho aún).
 2. Configura la variable de entorno `STEAM_API_KEY` (ver sección anterior).
-3. Abre el proyecto en tu IDE de Java preferido (por ejemplo, Eclipse, IntelliJ IDEA o VS Code).
-4. Ejecuta primero la clase del servidor (`RunServer.java`) para levantar el servicio Sockets.
-5. Finalmente, ejecuta las instancias del cliente (`RunClient.java`) para interactuar con la aplicación.
+3. Asegúrate de tener compilado el proyecto.
+4. **Levantar el Clúster (3 Nodos):**
+   Para ejecutar el entorno distribuido, debes levantar tres instancias del servidor. Puedes hacerlo desde tu IDE ejecutando `RunServer.java` tres veces (pasándole como argumento el ID `1`, `2` y `3`), o bien usando los scripts proporcionados en la raíz del proyecto. Abre 3 terminales distintas y ejecuta:
+   - Terminal 1: `./run_nodo1.sh` (o `.bat` en Windows)
+   - Terminal 2: `./run_nodo2.sh` (o `.bat` en Windows)
+   - Terminal 3: `./run_nodo3.sh` (o `.bat` en Windows)
+5. **Ejecutar Cliente Regular:**
+   Ejecuta `RunClient.java` para interactuar de forma manual con el sistema.
+6. **Ejecutar Prueba de Carga:**
+   Ejecuta `RunCarga.java` (o el script `./run_carga.sh`) para simular múltiples usuarios concurrentes y probar la exclusión mutua. Durante esta prueba puedes detener manualmente uno de los nodos para observar el algoritmo de recuperación en vivo.
