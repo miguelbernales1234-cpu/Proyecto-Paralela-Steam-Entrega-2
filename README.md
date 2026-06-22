@@ -1,6 +1,6 @@
 # Proyecto Computación Paralela y Distribuida - Steam
 
-Este repositorio contiene todo el código fuente del proyecto, el cual es una aplicación distribuida en Java que actúa como herramienta de análisis y comparación de precios de juegos usando la API oficial de Steam. Implementa funcionalidades como comparación de precios regionales y búsqueda de biblioteca compartida (Family Sharing).
+Este repositorio contiene todo el código fuente del proyecto, el cual es una aplicación distribuida en Java que actúa como herramienta de análisis y comparación de precios de juegos usando la API oficial de Steam. Implementa funcionalidades como comparación de precios regionales y la compra de juegos.
 
 **Nota importante:** Todo el código del proyecto se encuentra alojado en este repositorio de GitHub, junto con una carpeta que contiene los archivos de la base de datos (`.sql`) necesarios para su funcionamiento.
 
