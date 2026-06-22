@@ -1,6 +1,3 @@
--- SQL Script Completo en Español para Base de Datos de "Steam Autónomo"
--- Versión compatible con XAMPP (MySQL / MariaDB)
-
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
