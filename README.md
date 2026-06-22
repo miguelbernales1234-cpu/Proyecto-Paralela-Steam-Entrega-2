@@ -46,7 +46,7 @@ Para integrar la base de datos adjunta en el repositorio a tu entorno local, sig
     - Terminal 1: `./run_nodo1.sh`
     - Terminal 2: `./run_nodo2.sh`
     - Terminal 3: `./run_nodo3.sh`
-5. **Ejecutar Cliente Regular:**
+4. **Ejecutar Cliente Regular:**
    Ejecuta `RunClient.java` para interactuar de forma manual con el sistema.
-6. **Ejecutar Prueba de Carga:**
+5. **Ejecutar Prueba de Carga:**
    Ejecuta `RunCarga.java` (o el script `./run_carga.sh`) para simular múltiples usuarios concurrentes y probar la exclusión mutua. Durante esta prueba puedes detener manualmente uno de los nodos para observar el algoritmo de recuperación en vivo.
