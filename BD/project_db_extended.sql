@@ -1,5 +1,4 @@
 -- SQL Script Completo en Español para Base de Datos de "Steam Autónomo"
--- Autor: Antigravity AI
 -- Versión compatible con XAMPP (MySQL / MariaDB)
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
