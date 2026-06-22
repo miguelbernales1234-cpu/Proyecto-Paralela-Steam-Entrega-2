@@ -38,9 +38,14 @@ Para integrar la base de datos adjunta en el repositorio a tu entorno local, sig
 2. Asegúrate de tener compilado el proyecto.
 4. **Levantar el Clúster (3 Nodos):**
    Para ejecutar el entorno distribuido, debes levantar tres instancias del servidor. Para ello abre 3 terminales distintas y ejecuta:
-   - Terminal 1: `./run_nodo1.sh` (o `.bat` en Windows)
-   - Terminal 2: `./run_nodo2.sh` (o `.bat` en Windows)
-   - Terminal 3: `./run_nodo3.sh` (o `.bat` en Windows)
+*   **En Windows (.bat):**
+    - Terminal 1: `run_nodo1.bat`
+    - Terminal 2: `run_nodo2.bat`
+    - Terminal 3: `run_nodo3.bat`
+*   **En Linux / macOS (.sh):**
+    - Terminal 1: `./run_nodo1.sh`
+    - Terminal 2: `./run_nodo2.sh`
+    - Terminal 3: `./run_nodo3.sh`
 5. **Ejecutar Cliente Regular:**
    Ejecuta `RunClient.java` para interactuar de forma manual con el sistema.
 6. **Ejecutar Prueba de Carga:**
